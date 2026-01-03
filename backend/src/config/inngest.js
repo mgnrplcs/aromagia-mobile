@@ -1,6 +1,7 @@
 import { Inngest } from "inngest";
 import { connectDB } from "./db.js";
 import { User } from "../models/user.model.js";
+import { ENV } from "./env.js";
 
 export const inngest = new Inngest({ id: "aromagia-mobile" });
 
@@ -18,19 +19,33 @@ const syncUser = inngest.createFunction(
       image_url,
       phone_numbers,
     } = event.data;
+
+    const email = email_addresses?.[0]?.email_address || "";
+
+    const isAdmin =
+      email &&
+      ENV.ADMIN_EMAIL &&
+      email.toLowerCase() === ENV.ADMIN_EMAIL.toLowerCase();
+
+    // Автоматическая выдача админки
+    const role = isAdmin ? "admin" : "user";
+
     const userData = {
       clerkId: id,
-      email: email_addresses?.[0]?.email_address || "",
+      email: email,
       firstName: first_name || "",
       lastName: last_name || "",
       imageUrl: image_url || "",
       phone: phone_numbers?.[0]?.phone_number || "",
+      role: role,
     };
 
     await User.findOneAndUpdate({ clerkId: id }, userData, {
       upsert: true,
       new: true,
     });
+
+    console.log(`User synced: ${email}, Role: ${role}`);
   }
 );
 
