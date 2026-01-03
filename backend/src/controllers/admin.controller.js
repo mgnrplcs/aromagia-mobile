@@ -17,16 +17,34 @@ const uploadToCloudinary = async (file, folder) => {
 // Создание нового товара
 export async function createProduct(req, res) {
   try {
-    const { name, description, price, stock, category } = req.body;
+    const {
+      name,
+      description,
+      price,
+      stock,
+      category,
+      brand,
+      volume,
+      gender,
+      scentFamily,
+      concentration,
+      notesPyramid,
+      isBestseller,
+    } = req.body;
     const files = req.files;
 
     // 1. Валидация обязательных полей
     const missingFields = [];
-    if (!name) missingFields.push("Название (name)");
-    if (!description) missingFields.push("Описание (description)");
-    if (!price) missingFields.push("Цена (price)");
-    if (!stock) missingFields.push("Наличие (stock)");
-    if (!category) missingFields.push("Категория (category)");
+    if (!name) missingFields.push("Название");
+    if (!brand) missingFields.push("Бренд");
+    if (!description) missingFields.push("Описание");
+    if (!price) missingFields.push("Цена");
+    if (!volume) missingFields.push("Объем");
+    if (!stock) missingFields.push("Наличие");
+    if (!category) missingFields.push("Категория");
+    if (!gender) missingFields.push("Пол");
+    if (!scentFamily) missingFields.push("Семейство аромата");
+    if (!concentration) missingFields.push("Концентрация");
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -48,21 +66,56 @@ export async function createProduct(req, res) {
       });
     }
 
-    // 3. Загрузка изображений в Cloudinary
+    // 3. Обработка нот для поиска
+    let notesTags = [];
+    // Если notesPyramid пришел как JSON строка, парсим его (бывает при multipart/form-data)
+    let parsedNotes = notesPyramid;
+    if (typeof notesPyramid === "string") {
+      try {
+        parsedNotes = JSON.parse(notesPyramid);
+      } catch (e) {}
+    }
+
+    if (parsedNotes) {
+      const allNotes = [
+        parsedNotes.top,
+        parsedNotes.middle,
+        parsedNotes.base,
+      ].filter(Boolean);
+      notesTags = Array.from(
+        new Set(
+          allNotes
+            .join(", ")
+            .split(/[,;\s]+/)
+            .filter((tag) => tag.length > 0)
+            .map((tag) => tag.toLowerCase())
+        )
+      );
+    }
+
+    // 4. Загрузка изображений в Cloudinary
     const uploadPromises = files.map((file) =>
       uploadToCloudinary(file, "products")
     );
     const uploadResults = await Promise.all(uploadPromises);
     const imageUrls = uploadResults.map((result) => result.secure_url);
 
-    // 4. Создание записи в БД
+    // 5. Создание записи в БД
     const product = await Product.create({
       name,
+      brand,
       description,
       price: parseFloat(price),
+      volume: parseInt(volume),
       stock: parseInt(stock),
       category,
+      gender,
+      scentFamily,
+      concentration,
+      notesPyramid: parsedNotes,
+      notesTags,
       images: imageUrls,
+      isBestseller: String(isBestseller) === "true",
     });
 
     res.status(201).json({
@@ -81,7 +134,9 @@ export async function createProduct(req, res) {
 // Получение списка всех товаров
 export async function getAllProducts(_, res) {
   try {
-    const products = await Product.find().sort({ createdAt: -1 });
+    const products = await Product.find()
+      .populate("brand", "name logo")
+      .sort({ createdAt: -1 });
     res.status(200).json(products);
   } catch (error) {
     console.error("Ошибка в getAllProducts:", error);
@@ -96,7 +151,7 @@ export async function getAllProducts(_, res) {
 export async function updateProduct(req, res) {
   try {
     const { id } = req.params;
-    const { name, description, price, stock, category } = req.body;
+    const body = req.body;
     const files = req.files;
 
     const product = await Product.findById(id);
@@ -105,13 +160,52 @@ export async function updateProduct(req, res) {
     }
 
     // Обновляем только те поля, которые пришли в запросе
-    if (name) product.name = name;
-    if (description) product.description = description;
-    if (price !== undefined) product.price = parseFloat(price);
-    if (stock !== undefined) product.stock = parseInt(stock);
-    if (category) product.category = category;
+    const simpleFields = [
+      "name",
+      "brand",
+      "description",
+      "category",
+      "gender",
+      "scentFamily",
+      "concentration",
+    ];
+    simpleFields.forEach((field) => {
+      if (body[field]) product[field] = body[field];
+    });
 
-    // Если загрузили новые фото — старые заменяются полностью
+    if (body.price !== undefined) product.price = parseFloat(body.price);
+    if (body.volume !== undefined) product.volume = parseInt(body.volume);
+    if (body.stock !== undefined) product.stock = parseInt(body.stock);
+    if (body.isBestseller !== undefined)
+      product.isBestseller = String(body.isBestseller) === "true";
+
+    // Обработка нот (если передали новую пирамиду)
+    if (body.notesPyramid) {
+      let parsedNotes = body.notesPyramid;
+      if (typeof parsedNotes === "string") {
+        try {
+          parsedNotes = JSON.parse(parsedNotes);
+        } catch (e) {}
+      }
+      product.notesPyramid = parsedNotes;
+
+      const allNotes = [
+        parsedNotes.top,
+        parsedNotes.middle,
+        parsedNotes.base,
+      ].filter(Boolean);
+      product.notesTags = Array.from(
+        new Set(
+          allNotes
+            .join(", ")
+            .split(/[,;\s]+/)
+            .filter((tag) => tag.length > 0)
+            .map((tag) => tag.toLowerCase())
+        )
+      );
+    }
+
+    // Обработка фото (если загрузили новые)
     if (files && files.length > 0) {
       if (files.length > 8) {
         return res.status(400).json({
@@ -124,10 +218,10 @@ export async function updateProduct(req, res) {
           folder: "products",
         });
       });
-
       const uploadResults = await Promise.all(uploadPromises);
       product.images = uploadResults.map((result) => result.secure_url);
     }
+
     await product.save();
 
     res.status(200).json({
@@ -165,7 +259,6 @@ export async function updateOrderStatus(req, res) {
   try {
     const { orderId } = req.params;
     const { status } = req.body;
-
     const allowedStatuses = ["В ожидании", "Отправлен", "Доставлен"];
 
     if (!allowedStatuses.includes(status)) {

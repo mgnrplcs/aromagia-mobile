@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const reviewSchema = new mongoose.Schema(
   {
-    prodictId: {
+    productId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
       required: true,
@@ -22,6 +22,11 @@ const reviewSchema = new mongoose.Schema(
       required: true,
       min: 1,
       max: 5,
+    },
+    comment: {
+      type: String,
+      trim: true,
+      default: "",
     },
   },
   { timestamps: true }

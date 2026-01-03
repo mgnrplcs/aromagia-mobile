@@ -15,19 +15,19 @@ const router = Router();
 
 router.use(protectRoute, adminOnly);
 
-// 📦 Управление товарами (Products)
+// 📦 Управление товарами
 router.post("/products", upload.array("images"), createProduct);
 router.get("/products", getAllProducts);
 router.put("/products/:id", upload.array("images"), updateProduct);
 
-// 🛒 Управление заказами (Orders)
+// 🛒 Управление заказами
 router.get("/orders", getAllOrders);
 router.patch("/orders/:orderId/status", updateOrderStatus);
 
-// 👨‍💻 Управление пользователями (Customers)
+// 👨‍💻 Управление пользователями
 router.get("/customers", getAllCustomers);
 
-// 📊 Аналитика и отчеты (Stats)
+// 📊 Аналитика и отчеты
 router.get("/stats", getDashboardStats);
 
 export default router;
