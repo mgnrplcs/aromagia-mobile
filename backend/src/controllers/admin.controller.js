@@ -72,7 +72,7 @@ export async function createProduct(req, res) {
   } catch (error) {
     console.error("Ошибка в createProduct:", error);
     res.status(500).json({
-      message: "Не удалось создать товар. Попробуйте позже.",
+      message: "Не удалось создать товар",
       error: error.message,
     });
   }
