@@ -20,6 +20,7 @@ const cartSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      unique: true,
     },
     clerkId: {
       type: String,
@@ -28,7 +29,21 @@ const cartSchema = new mongoose.Schema(
     },
     items: [cartItemSchema],
   },
-  { timestamps: true }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
+
+// Виртуальное поле totalPrice
+cartSchema.virtual("totalPrice").get(function () {
+  if (!this.items || this.items.length === 0) return 0;
+
+  // Пробегаемся по товарам и считаем сумму
+  return this.items.reduce((total, item) => {
+    // Проверяем, загружен ли продукт (сделан ли populate)
+    if (item.product && item.product.price) {
+      return total + item.product.price * item.quantity;
+    }
+    return total;
+  }, 0);
+});
 
 export const Cart = mongoose.model("Cart", cartSchema);

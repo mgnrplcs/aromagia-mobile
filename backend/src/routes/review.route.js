@@ -14,8 +14,10 @@ router.use(protectRoute);
 // 👀 Просмотр отзывов
 router.get("/product/:productId", getProductReviews);
 
-// ✨ Управление отзывами
+// ✍️ Оставить отзыв
 router.post("/", createReview);
+
+// 🗑️ Удалить отзыв
 router.delete("/:reviewId", deleteReview);
 
 export default router;

@@ -8,8 +8,10 @@ const router = Router();
 
 router.use(protectRoute);
 
-// 🛒 Заказы пользователя
+// 📦 Создать новый заказ
 router.post("/", createOrder);
+
+// 📜 Получить историю заказов
 router.get("/", getUserOrders);
 
 export default router;

@@ -14,13 +14,13 @@ const router = Router();
 
 router.use(protectRoute);
 
-// 📍 Адреса пользователя
+// 📍 Управление адресами
 router.post("/addresses", addAddress);
 router.get("/addresses", getAddresses);
 router.put("/addresses/:addressId", updateAddress);
 router.delete("/addresses/:addressId", deleteAddress);
 
-// ❤️ Избранные товары
+// ❤️ Управление избранным
 router.post("/wishlist", addToWishlist);
 router.get("/wishlist", getWishlist);
 router.delete("/wishlist/:productId", removeFromWishlist);

@@ -12,8 +12,10 @@ router.use(protectRoute);
 
 // 🛍️ Основные товары
 router.get("/", getAllProducts);
+
 // ✨ Рекомендации
 router.get("/recommendations", getRecommendedProducts);
+
 // 🔍 Товар по ID
 router.get("/:id", getProductById);
 
