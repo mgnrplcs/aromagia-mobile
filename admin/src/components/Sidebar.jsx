@@ -31,7 +31,7 @@ function Sidebar() {
           <img
             src={Logo}
             alt=""
-            className="w-132 h-132 object-contain rotate-12 opacity-[0.05]"
+            className="w-132 h-132 object-contain rotate-12 opacity-[0.055]"
           />
         </div>
 

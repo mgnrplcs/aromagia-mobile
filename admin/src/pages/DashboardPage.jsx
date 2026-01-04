@@ -1,7 +1,9 @@
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery } from "@tanstack/react-query";
-import { RussianRuble, ShoppingBagIcon, UserIcon, Package } from "lucide-react";
+import { PiggyBank, ShoppingBagIcon, UsersIcon, Package } from "lucide-react";
 import { orderApi, statsApi } from "../lib/api";
+
+import PageLoader from "../components/PageLoader";
 
 import { getOrderStatusBadge, formatDate } from "../lib/utils";
 
@@ -32,7 +34,7 @@ function DashboardPage() {
       value: statsLoading
         ? "..."
         : `${statsData?.totalRevenue?.toLocaleString("ru-RU") || 0} ₽`,
-      icon: <RussianRuble className="size-8" />,
+      icon: <PiggyBank className="size-9" />,
     },
     {
       name: "Всего заказов",
@@ -42,7 +44,7 @@ function DashboardPage() {
     {
       name: "Клиенты",
       value: statsLoading ? "..." : statsData?.totalCustomers || 0,
-      icon: <UserIcon className="size-8" />,
+      icon: <UsersIcon className="size-8" />,
     },
     {
       name: "Товары",
@@ -52,16 +54,11 @@ function DashboardPage() {
   ];
 
   if (ordersLoading || statsLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <span className="loading loading-spinner loading-lg text-primary" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (
     <div className="space-y-6">
-      {/* STATS */}
       <div className="stats stats-vertical lg:stats-horizontal shadow w-full bg-base-100">
         {statsCards.map((stat) => (
           <div key={stat.name} className="stat">
@@ -74,7 +71,6 @@ function DashboardPage() {
         ))}
       </div>
 
-      {/* RECENT ORDERS */}
       <div className="card bg-base-100 shadow-xl border border-base-200">
         <div className="card-body p-0 sm:p-6">
           <h2 className="card-title px-6 pt-6 sm:px-0 sm:pt-0 mb-4">
@@ -137,7 +133,6 @@ function DashboardPage() {
                       </td>
 
                       <td>
-                        {/* ИСПОЛЬЗУЕМ ФУНКЦИЮ ИЗ UTILS */}
                         <div
                           className={`badge badge-sm font-medium ${getOrderStatusBadge(
                             order.status
@@ -148,7 +143,6 @@ function DashboardPage() {
                       </td>
 
                       <td>
-                        {/* ИСПОЛЬЗУЕМ ФУНКЦИЮ ИЗ UTILS */}
                         <span className="text-xs font-medium opacity-60">
                           {formatDate(order.createdAt)}
                         </span>

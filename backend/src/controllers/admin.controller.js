@@ -2,6 +2,7 @@ import cloudinary from "../config/cloudinary.js";
 import { Product } from "../models/product.model.js";
 import { Order } from "../models/order.model.js";
 import { User } from "../models/user.model.js";
+import { Brand } from "../models/brand.model.js";
 
 // Утилита для загрузки в CLOUDINARY
 // Так как файлы в памяти (buffer), их нужно превратить в base64 перед отправкой
@@ -347,5 +348,30 @@ export async function getDashboardStats(_, res) {
       message: "Не удалось загрузить статистику",
       error: error.message,
     });
+  }
+}
+
+export async function deleteProduct(req, res) {
+  try {
+    const { id } = req.params;
+    await Product.findByIdAndDelete(id);
+    res.status(200).json({ message: "Товар успешно удалён" });
+  } catch (error) {
+    console.error("Ошибка в deleteProduct:", error);
+    res.status(500).json({
+      message: "Не удалось удалить товар",
+      error: error.message,
+    });
+  }
+}
+
+// Получение списка всех брендов
+export async function getAllBrands(_, res) {
+  try {
+    const brands = await Brand.find().select("name _id").sort({ name: 1 });
+    res.status(200).json(brands);
+  } catch (error) {
+    console.error("Ошибка в getAllBrands:", error);
+    res.status(500).json({ message: "Не удалось загрузить бренды" });
   }
 }

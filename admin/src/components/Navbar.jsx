@@ -7,6 +7,7 @@ import {
   PanelLeftIcon,
   ShoppingBagIcon,
   UsersIcon,
+  Tags,
 } from "lucide-react";
 
 export const NAVIGATION = [
@@ -19,6 +20,11 @@ export const NAVIGATION = [
     name: "Товары",
     path: "/products",
     icon: <ShoppingBagIcon className="size-5" />,
+  },
+  {
+    name: "Бренды",
+    path: "/brands",
+    icon: <Tags className="size-5" />,
   },
   {
     name: "Заказы",

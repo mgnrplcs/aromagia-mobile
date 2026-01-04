@@ -5,53 +5,74 @@ import { ENV } from "./env.js";
 
 export const inngest = new Inngest({ id: "aromagia-mobile" });
 
+// 1. Функция создания/обновления пользователя
 const syncUser = inngest.createFunction(
   { id: "sync-user" },
-  { event: "clerk/user.created" },
+  [{ event: "clerk/user.created" }, { event: "clerk/user.updated" }],
   async ({ event }) => {
     await connectDB();
 
-    // Достаем данные, которые пришли от Clerk
-    const { id, email_addresses, first_name, last_name, image_url } =
-      event.data;
+    // === 1. Ищем данные пользователя ===
+    const userData = event.data?.data || event.data;
 
-    // Берем основной email пользователя
-    const userEmail = email_addresses[0]?.email_address;
+    console.log("📥 [SYNC-USER] Обработка данных:", userData?.id);
 
-    // Логика определения роли
-    //  Мы проверяем: совпадает ли email нового пользователя с ADMIN_EMAIL из .env?
-    //    Если да -> присваиваем роль "admin".
-    //    Если нет (обычный клиент) -> присваиваем роль "user".
+    // === 2. Безопасная деструктуризация ===
+    const {
+      id,
+      first_name,
+      last_name,
+      email_addresses,
+      image_url,
+      phone_numbers,
+    } = userData || {};
+
+    if (!id) {
+      console.error("❌ [SYNC-USER] Ошибка: ID пользователя не найден.");
+      return;
+    }
+
+    // === 3. Безопасное получение email ===
+    const email = email_addresses?.[0]?.email_address || "";
+
     const isAdmin =
-      email === ENV.ADMIN_EMAIL || public_metadata?.role === "admin";
+      email &&
+      ENV.ADMIN_EMAIL &&
+      email.toLowerCase() === ENV.ADMIN_EMAIL.toLowerCase();
 
-    const userData = {
+    const role = isAdmin ? "admin" : "user";
+
+    const userToSave = {
       clerkId: id,
-      email: userEmail,
-      firstName: first_name || "",
+      email: email,
+      firstName: first_name || "Без имени",
       lastName: last_name || "",
-      imageUrl: image_url,
-      role: userRole,
+      imageUrl: image_url || "",
+      phone: phone_numbers?.[0]?.phone_number || "",
+      role: role,
     };
 
-    // Используем findOneAndUpdate с upsert: true.
-    // Это защищает от ошибок дубликатов, если вебхук придет дважды.
-    await User.findOneAndUpdate({ clerkId: id }, userData, {
+    await User.findOneAndUpdate({ clerkId: id }, userToSave, {
       upsert: true,
       new: true,
-      setDefaultsOnInsert: true,
     });
+
+    console.log(`✅ [SYNC-USER] Успешно: ${email} (${role})`);
   }
 );
 
+// 2. Функция удаления
 const deleteUserFromDB = inngest.createFunction(
-  { id: "delete-user-from-db" },
+  { id: "delete-user" },
   { event: "clerk/user.deleted" },
   async ({ event }) => {
     await connectDB();
+    const id = event.data?.data?.id || event.data?.id;
 
-    const { id } = event.data;
-    await User.deleteOne({ clerkId: id });
+    if (id) {
+      await User.findOneAndDelete({ clerkId: id });
+      console.log(`🗑️ [DELETE-USER] Пользователь ${id} удален.`);
+    }
   }
 );
 
