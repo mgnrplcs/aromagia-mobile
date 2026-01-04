@@ -1,4 +1,60 @@
 @import "tailwindcss";
+
 @plugin "daisyui" {
   themes: dim;
+}
+
+/* Inter Regular (400) */
+@font-face {
+  font-family: "Inter";
+  /* Обрати внимание: расширение .otf и формат opentype */
+  src: url("/fonts/Inter/Inter-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Inter Medium (500) */
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/Inter/Inter-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+/* Inter SemiBold (600) */
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/Inter/Inter-SemiBold.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* Inter Bold (700) */
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/Inter/Inter-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Raleway Regular (400) */
+@font-face {
+  font-family: "Raleway";
+  /* Тут оставляем .ttf и truetype */
+  src: url("/fonts/Raleway/Raleway-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Raleway Bold (700) */
+@font-face {
+  font-family: "Raleway";
+  src: url("/fonts/Raleway/Raleway-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-raleway: "Raleway", sans-serif;
 }

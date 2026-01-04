@@ -245,7 +245,8 @@ export async function getAllOrders(_, res) {
       .populate("user", "firstName lastName email phone")
       // 2. Забираем данные о товарах
       .populate("orderItems.product")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(10);
 
     res.status(200).json({ orders });
   } catch (error) {

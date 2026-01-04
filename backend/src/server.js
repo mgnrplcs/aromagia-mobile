@@ -22,6 +22,7 @@ const __dirname = path.resolve();
 
 app.use(express.json());
 app.use(clerkMiddleware());
+
 app.use(
   cors({
     // Разрешаем запросы только с фронтенда (например, http://localhost:3000 или https://your-site.com)
@@ -40,7 +41,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/products", productRoutes);
-app.use("/api/products", cartRoutes);
+app.use("/api/cart", cartRoutes);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "Success" });
