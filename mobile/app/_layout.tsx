@@ -28,10 +28,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView>
       <Providers>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)/screens" />
-        </Stack>
+        <Stack screenOptions={{ headerShown: false }}></Stack>
       </Providers>
     </GestureHandlerRootView>
   );
