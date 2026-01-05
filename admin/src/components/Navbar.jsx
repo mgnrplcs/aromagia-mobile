@@ -1,5 +1,5 @@
-import { UserButton } from "@clerk/clerk-react";
 import { useLocation } from "react-router";
+import { useClerk } from "@clerk/clerk-react";
 
 import {
   ClipboardListIcon,
@@ -8,6 +8,7 @@ import {
   ShoppingBagIcon,
   UsersIcon,
   Tags,
+  LogOut,
 } from "lucide-react";
 
 export const NAVIGATION = [
@@ -40,9 +41,10 @@ export const NAVIGATION = [
 
 function Navbar() {
   const location = useLocation();
+  const { signOut } = useClerk();
 
   return (
-    <div className="navbar w-full bg-base-300">
+    <div className="navbar tracking-wide w-full bg-base-300">
       <label
         htmlFor="my-drawer"
         className="btn btn-square btn-ghost"
@@ -58,8 +60,14 @@ function Navbar() {
             "Главная"}
         </h1>
       </div>
-      <div className="mr-5 mt-1">
-        <UserButton />
+      <div className="mr-2">
+        <button
+          onClick={() => signOut({ redirectUrl: "/" })}
+          className="btn btn-ghost btn-circle text-base-content hover:text-error hover:bg-base-200"
+          title="Выйти из аккаунта"
+        >
+          <LogOut className="size-4" />
+        </button>
       </div>
     </div>
   );

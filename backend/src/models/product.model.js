@@ -5,7 +5,6 @@ const productSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      // Убираем лишние пробелы
       trim: true,
     },
     brand: {
@@ -59,13 +58,11 @@ const productSchema = new mongoose.Schema(
       ],
       required: true,
     },
-    // Для отображения пирамиды нот на карточке
     notesPyramid: {
       top: { type: String, default: "" },
       middle: { type: String, default: "" },
       base: { type: String, default: "" },
     },
-    // Для поиска и фильтрации по отдельным нотам
     notesTags: [
       {
         type: String,
@@ -97,7 +94,7 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Создаем текстовый индекс для поиска
+// Текстовый индекс для поиска
 productSchema.index({
   name: "text",
   description: "text",

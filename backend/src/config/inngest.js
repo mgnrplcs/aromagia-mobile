@@ -14,7 +14,6 @@ const syncUser = inngest.createFunction(
 
     // === 1. Ищем данные пользователя ===
     const userData = event.data?.data || event.data;
-
     console.log("📥 [SYNC-USER] Обработка данных:", userData?.id);
 
     // === 2. Безопасная деструктуризация ===
@@ -42,22 +41,45 @@ const syncUser = inngest.createFunction(
 
     const role = isAdmin ? "admin" : "user";
 
-    const userToSave = {
-      clerkId: id,
-      email: email,
-      firstName: first_name || "Без имени",
-      lastName: last_name || "",
-      imageUrl: image_url || "",
-      phone: phone_numbers?.[0]?.phone_number || "",
-      role: role,
-    };
+    // === 4. УМНАЯ ЛОГИКА ОБНОВЛЕНИЯ ===
 
-    await User.findOneAndUpdate({ clerkId: id }, userToSave, {
-      upsert: true,
-      new: true,
-    });
+    // Сначала ищем пользователя по Clerk ID
+    let user = await User.findOne({ clerkId: id });
 
-    console.log(`✅ [SYNC-USER] Успешно: ${email} (${role})`);
+    // Если не нашли по ID, ищем по EMAIL (чтобы избежать дублей)
+    if (!user && email) {
+      user = await User.findOne({ email: email });
+      if (user) {
+        console.log(
+          `🔗 [SYNC-USER] Найден старый аккаунт по email. Обновляем ID.`
+        );
+      }
+    }
+
+    if (user) {
+      // ОБНОВЛЯЕМ существующего
+      user.clerkId = id; // Обновляем ID на случай, если он изменился (пересоздание в Clerk)
+      user.firstName = first_name || user.firstName;
+      user.lastName = last_name || user.lastName;
+      user.imageUrl = image_url || user.imageUrl;
+      user.phone = phone_numbers?.[0]?.phone_number || user.phone;
+      user.role = role; // Можно убрать, если не хочешь сбрасывать роль
+
+      await user.save();
+      console.log(`✅ [SYNC-USER] Обновлено: ${email} (${role})`);
+    } else {
+      // СОЗДАЕМ нового
+      await User.create({
+        clerkId: id,
+        email: email,
+        firstName: first_name || "Без имени",
+        lastName: last_name || "",
+        imageUrl: image_url || "",
+        phone: phone_numbers?.[0]?.phone_number || "",
+        role: role,
+      });
+      console.log(`✨ [SYNC-USER] Создан новый: ${email} (${role})`);
+    }
   }
 );
 

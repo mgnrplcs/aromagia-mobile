@@ -1,13 +1,32 @@
-import { useUser } from "@clerk/clerk-react";
+import { useState, useRef, useEffect } from "react";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { Link, useLocation } from "react-router";
 import { NAVIGATION } from "./Navbar";
 import Logo from "../assets/images/icons/aromagia-sm.png";
+import { Sparkles, Settings, LogOut } from "lucide-react";
 
 function Sidebar() {
   const location = useLocation();
   const { user } = useUser();
+  const { openUserProfile, signOut } = useClerk();
 
-  // Стиль активного таба
+  // Состояние для кастомного меню
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Закрытие меню при клике вне
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuRef]);
+
   const getTabStyle = (isActive) => `
     group flex items-center gap-1 rounded-xl px-0 py-3 transition-all duration-300 is-drawer-close:justify-center relative
     ${
@@ -18,7 +37,7 @@ function Sidebar() {
   `;
 
   return (
-    <div className="drawer-side z-50 is-drawer-close:overflow-visible">
+    <div className="drawer-side tracking-wide z-50 is-drawer-close:overflow-visible">
       <label
         htmlFor="my-drawer"
         aria-label="close sidebar"
@@ -26,7 +45,7 @@ function Sidebar() {
       ></label>
 
       <div className="relative flex min-h-full flex-col items-start bg-base-100 border-r border-base-200 text-base-content transition-[width] duration-500 cubic-bezier(0.4, 0, 0.2, 1) is-drawer-close:w-18 is-drawer-open:w-72 is-drawer-open:overflow-hidden is-drawer-close:overflow-visible">
-        {/* Вотермарка (Фон) */}
+        {/* Вотермарка */}
         <div className="absolute -bottom-20 -right-54 z-0 pointer-events-none select-none transition-opacity duration-500 is-drawer-close:opacity-0 is-drawer-close:hidden">
           <img
             src={Logo}
@@ -36,15 +55,15 @@ function Sidebar() {
         </div>
 
         {/* Шапка */}
-        <div className="relative z-10 flex h-20 w-full items-center overflow-hidden mb-2">
+        <div className="relative z-10 flex h-20 w-full items-center overflow-hiddenm">
           <div className="flex w-18 shrink-0 items-center justify-center">
-            <div className="flex text-2xl size-10 items-center justify-center rounded-xl bg-base-200/40 p-1.5 shadow-sm ring-1 ring-base-200 backdrop-blur-sm">
-              ⚙️
+            <div className="flex text-2xl size-10 items-center justify-center rounded-xl bg-primary/10 text-primary p-1.5">
+              <Sparkles className="w-6 h-6 fill-current" />
             </div>
           </div>
 
-          <span className="flex items-baseline truncate font-raleway tracking-wide opacity-100 transition-all duration-300 is-drawer-close:w-0 is-drawer-close:opacity-0 is-drawer-close:translate-x-4">
-            <span className="text-xl mb-1.5 font-bold text-base-content">
+          <span className="flex items-baseline truncate font-raleway opacity-100 transition-all duration-300 is-drawer-close:w-0 is-drawer-close:opacity-0 is-drawer-close:translate-x-4">
+            <span className="text-xl mb-2 font-bold text-base-content">
               аромагия
             </span>
             <span className="mx-0.5 text-2xl font-bold text-primary">.</span>
@@ -69,11 +88,11 @@ function Sidebar() {
                     {item.icon}
                   </span>
 
-                  <span className="whitespace-nowrap text-sm font-medium tracking-wide is-drawer-close:hidden">
+                  <span className="whitespace-nowrap text-sm font-medium is-drawer-close:hidden">
                     {item.name}
                   </span>
 
-                  {/* Подсказка (Tooltip) */}
+                  {/* Тултип */}
                   <div className="fixed left-16 px-3 py-2 bg-neutral text-neutral-content text-xs font-medium tracking-wider rounded-md opacity-0 group-hover:opacity-100 transition-all duration-200 -translate-x-2.5 group-hover:translate-x-0 pointer-events-none z-100 whitespace-nowrap hidden is-drawer-close:group-hover:block shadow-lg">
                     {item.name}
                   </div>
@@ -83,9 +102,58 @@ function Sidebar() {
           })}
         </ul>
 
-        {/* Профиль пользователя */}
-        <div className="relative z-10 w-full border-t border-base-200 p-3 mt-auto">
-          <div className="flex cursor-pointer items-center rounded-xl p-2 hover:bg-base-200 transition-all duration-300 group whitespace-nowrap">
+        {/* --- Профиль пользователя --- */}
+        <div
+          ref={menuRef}
+          className="relative z-20 w-full border-t border-base-200 p-3 mt-auto"
+        >
+          {/* Всплывающее меню */}
+          <div
+            className={`
+              absolute bottom-full left-3 right-3 mb-2 
+              bg-base-100 rounded-2xl shadow-2xl ring-1 ring-base-200 
+              transform transition-all duration-200 origin-bottom p-1.5
+              is-drawer-close:left-2 is-drawer-close:w-60
+              ${
+                isMenuOpen
+                  ? "opacity-100 scale-100 translate-y-0 visible"
+                  : "opacity-0 scale-95 translate-y-2 invisible pointer-events-none"
+              }
+            `}
+          >
+            <div className="flex flex-col">
+              <button
+                onClick={() => {
+                  openUserProfile();
+                  setIsMenuOpen(false);
+                }}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-base-content hover:bg-base-200 transition-colors text-left"
+              >
+                <Settings
+                  className="w-4 h-4 text-base-content/70"
+                  strokeWidth={2.5}
+                />
+                Настройки профиля
+              </button>
+
+              <button
+                onClick={() => signOut()}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-error hover:bg-error/10 transition-colors text-left"
+              >
+                <LogOut className="w-4 h-4" />
+                Выйти из системы
+              </button>
+            </div>
+          </div>
+
+          {/* Карточка юзера (Кнопка) */}
+          <div
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className={`
+              flex cursor-pointer items-center rounded-xl p-2 transition-all duration-200 group select-none
+              ${isMenuOpen ? "bg-base-200" : "hover:bg-base-200"}
+            `}
+          >
             <div className="flex shrink-0 w-10 justify-center">
               <div className="avatar transition-transform duration-300 group-hover:scale-105">
                 <div className="w-10 rounded-full ring-2 ring-base-100 ring-offset-2 ring-offset-base-300">
@@ -95,7 +163,7 @@ function Sidebar() {
             </div>
 
             <div className="ml-3 flex min-w-0 flex-1 flex-col is-drawer-close:hidden opacity-100 transition-opacity duration-300">
-              <p className="truncate text-sm font-bold text-base-content group-hover:text-primary transition-colors">
+              <p className="truncate text-sm font-medium text-base-content group-hover:text-primary transition-colors">
                 {user?.firstName} {user?.lastName}
               </p>
               <p className="truncate text-xs text-base-content/60">

@@ -8,45 +8,52 @@ import OrdersPage from "./pages/OrdersPage";
 import CustomersPage from "./pages/CustomersPage";
 import BrandsPage from "./pages/BrandsPage";
 import NotFoundPage from "./pages/NotFoundPage";
-import DashboardLayout from "./layouts/DashboardLayout";
 
+import DashboardLayout from "./layouts/DashboardLayout";
 import PageLoader from "./components/PageLoader";
+import AdminRoute from "./components/AdminRoute";
 
 function App() {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
 
+  // Глобальный лоадер инициализации Clerk
   if (!isLoaded) {
     return <PageLoader />;
   }
 
   return (
     <Routes>
-      {/* Страница входа — видна только если НЕ вошли в аккаунт */}
+      {/* === ПУБЛИЧНАЯ ЗОНА === */}
+      {/* Если юзер уже вошел, со страницы логина кидаем сразу в админку */}
       <Route
         path="/login"
-        element={isSignedIn ? <Navigate to={"/dashboard"} /> : <LoginPage />}
-      ></Route>
+        element={
+          isSignedIn ? <Navigate to="/dashboard" replace /> : <LoginPage />
+        }
+      />
 
-      {/* Основная часть приложения — только для авторизированных пользователей */}
-      <Route
-        path="/"
-        element={isSignedIn ? <DashboardLayout /> : <Navigate to={"/login"} />}
-      >
-        {/* Если зашли на корень / — редирект на Dashboard */}
-        <Route index element={<Navigate to={"/dashboard"} />} />
+      {/* === ЗАЩИЩЕННАЯ ЗОНА (ADMIN) === */}
+      {/* 1. Сначала срабатывает AdminRoute. Он проверит роль. */}
+      {/* Если не админ — покажет AccessDeniedPage. Layout даже не загрузится. */}
+      <Route element={<AdminRoute />}>
+        {/* 2. Если роль OK, грузится DashboardLayout (Сайдбар + Навбар) */}
+        <Route element={<DashboardLayout />}>
+          {/* Редирект с корня / на /dashboard */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-        {/* Вложенные страницы внутри DashboardLayout */}
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="products" element={<ProductsPage />} />
-        <Route path="brands" element={<BrandsPage />} />
-        <Route path="orders" element={<OrdersPage />} />
-        <Route path="customers" element={<CustomersPage />} />
+          {/* Вложенные страницы */}
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="brands" element={<BrandsPage />} />
+          <Route path="orders" element={<OrdersPage />} />
+          <Route path="customers" element={<CustomersPage />} />
 
-        {/* 404 внутри защищённой зоны */}
-        <Route path="*" element={<NotFoundPage />} />
+          {/* 404 для неизвестных страниц внутри админки */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
       </Route>
 
-      {/* Общий 404 для всего приложения */}
+      {/* === ОБЩИЙ 404 (Для путей, не попавших в другие правила) === */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

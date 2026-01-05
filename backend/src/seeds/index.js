@@ -58,7 +58,7 @@ const seedDatabase = async () => {
       { name: "Dior", file: "dior.jpg" },
       { name: "Chanel", file: "chanel.jpg" },
       { name: "Dolce & Gabbana", file: "Dolce & Gabbana.jpg" },
-      { name: "Marc-Antoine Barrois", file: "Marc-Antoine Barrois.png" }, // png!
+      { name: "Marc-Antoine Barrois", file: "Marc-Antoine Barrois.png" },
       { name: "Yves Saint Laurent", file: "Yves Saint Laurent.jpg" },
       { name: "Rabanne", file: "Rabanne.jpg" },
       { name: "Guerlain", file: "Guerlain.jpg" },

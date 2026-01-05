@@ -70,6 +70,21 @@ export const customerApi = {
     );
     return data;
   },
+  update: async ({ id, formData }, token) => {
+    const { data } = await axiosInstance.put(
+      `/admin/customers/${id}`,
+      formData,
+      getHeaders(token)
+    );
+    return data;
+  },
+  delete: async (id, token) => {
+    const { data } = await axiosInstance.delete(
+      `/admin/customers/${id}`,
+      getHeaders(token)
+    );
+    return data;
+  },
 };
 
 export const brandApi = {
@@ -78,6 +93,36 @@ export const brandApi = {
       "/admin/brands",
       getHeaders(token)
     );
+    return data;
+  },
+  create: async (formData, token) => {
+    const { data } = await axiosInstance.post(
+      "/admin/brands",
+      formData,
+      getHeaders(token)
+    );
+    return data;
+  },
+  update: async ({ id, formData }, token) => {
+    const { data } = await axiosInstance.put(
+      `/admin/brands/${id}`,
+      formData,
+      getHeaders(token)
+    );
+    return data;
+  },
+  delete: async (id, token) => {
+    const { data } = await axiosInstance.delete(
+      `/admin/brands/${id}`,
+      getHeaders(token)
+    );
+    return data;
+  },
+};
+
+export const userApi = {
+  getMe: async (token) => {
+    const { data } = await axiosInstance.get("/users/me", getHeaders(token));
     return data;
   },
 };

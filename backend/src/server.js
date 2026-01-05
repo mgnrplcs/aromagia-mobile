@@ -12,6 +12,7 @@ import orderRoutes from "./routes/order.route.js";
 import reviewRoutes from "./routes/review.route.js";
 import productRoutes from "./routes/product.route.js";
 import cartRoutes from "./routes/cart.route.js";
+import webhookRoutes from "./routes/webhook.route.js";
 
 import { ENV } from "./config/env.js";
 import { connectDB } from "./config/db.js";
@@ -19,6 +20,8 @@ import { connectDB } from "./config/db.js";
 const app = express();
 
 const __dirname = path.resolve();
+
+app.use("/api/webhooks", webhookRoutes);
 
 app.use(express.json());
 app.use(clerkMiddleware());

@@ -58,12 +58,13 @@ function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 tracking-wide">
+      {/* Карточки статистики */}
       <div className="stats stats-vertical lg:stats-horizontal shadow w-full bg-base-100">
         {statsCards.map((stat) => (
           <div key={stat.name} className="stat">
             <div className="stat-figure text-primary">{stat.icon}</div>
-            <div className="stat-title text-base-content/60 font-medium">
+            <div className="stat-title text-sm text-base-content/60 font-medium">
               {stat.name}
             </div>
             <div className="stat-value text-2xl">{stat.value}</div>
@@ -71,17 +72,28 @@ function DashboardPage() {
         ))}
       </div>
 
+      {/* Секция последних заказов */}
       <div className="card bg-base-100 shadow-xl border border-base-200">
         <div className="card-body p-0 sm:p-6">
-          <h2 className="card-title px-6 pt-6 sm:px-0 sm:pt-0 mb-4">
+          <h2 className="card-title px-6 pt-6 sm:px-0 sm:pt-0 mb-4 font-raleway">
             Последние заказы
           </h2>
 
           {recentOrders.length === 0 ? (
-            <div className="text-center py-12 text-base-content/60">
-              Заказов пока нет
+            // === Блок, если заказов нет ===
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="flex justify-center mb-4">
+                <ShoppingBagIcon className="w-16 h-16 text-base-content/20" />
+              </div>
+              <h3 className="text-xl font-bold text-base-content/70">
+                Заказы ещё не поступали
+              </h3>
+              <p className="text-sm text-base-content/50 mt-1 max-w-md">
+                История заказов клиентов появится здесь автоматически
+              </p>
             </div>
           ) : (
+            // === Таблица с заказами ===
             <div className="overflow-x-auto">
               <table className="table">
                 <thead>
@@ -107,10 +119,11 @@ function DashboardPage() {
                       <td>
                         <div>
                           <div className="font-bold text-sm">
-                            {order.user?.firstName} {order.user?.lastName}
+                            {order.user?.firstName || "Гость"}{" "}
+                            {order.user?.lastName || ""}
                           </div>
                           <div className="text-xs opacity-50">
-                            {order.user?.email}
+                            {order.user?.email || "Email скрыт"}
                           </div>
                         </div>
                       </td>

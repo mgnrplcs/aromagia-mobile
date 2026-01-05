@@ -25,4 +25,9 @@ router.post("/wishlist", addToWishlist);
 router.get("/wishlist", getWishlist);
 router.delete("/wishlist/:productId", removeFromWishlist);
 
+// 🛡️ Проверка роли
+router.get("/me", (req, res) => {
+  res.status(200).json(req.user);
+});
+
 export default router;

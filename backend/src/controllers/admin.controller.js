@@ -1,19 +1,64 @@
 import cloudinary from "../config/cloudinary.js";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 import { Product } from "../models/product.model.js";
 import { Order } from "../models/order.model.js";
 import { User } from "../models/user.model.js";
 import { Brand } from "../models/brand.model.js";
+import { Cart } from "../models/cart.model.js";
 
-// Утилита для загрузки в CLOUDINARY
-// Так как файлы в памяти (buffer), их нужно превратить в base64 перед отправкой
+// === Вспомогательные функции ===
+
+// Утилита для загрузки в Cloudinary
+// Превращает файл из памяти (buffer) в base64 и отправляет в облако
 const uploadToCloudinary = async (file, folder) => {
+  if (!file || !file.buffer) {
+    throw new Error("Файл не содержит бинарных данных (buffer)");
+  }
+
   const b64 = Buffer.from(file.buffer).toString("base64");
   const dataURI = "data:" + file.mimetype + ";base64," + b64;
 
   return cloudinary.uploader.upload(dataURI, {
     folder: folder,
+    resource_type: "auto",
+    timeout: 60000, // 60 секунд
   });
 };
+
+// 2. Утилита для получения public_id из ссылки
+// Нужна, чтобы знать, какой файл удалять. Из "https://.../folder/image.jpg" делает "folder/image"
+const getPublicIdFromUrl = (imageUrl) => {
+  try {
+    // Регулярное выражение находит всё, что идет после "/upload/" и до расширения файла (.jpg)
+    const regex = /\/upload\/(?:v\d+\/)?(.+)\.[^.]+$/;
+
+    const match = imageUrl.match(regex);
+
+    // match[1] вернет "products/filename" или "avatars/filename"
+    return match ? match[1] : null;
+  } catch (error) {
+    console.error("Некорректный формат ссылки Cloudinary:", imageUrl);
+    return null;
+  }
+};
+
+// 3. Утилита для удаления файла из Cloudinary по ссылке
+const deleteFromCloudinary = async (imageUrl) => {
+  const publicId = getPublicIdFromUrl(imageUrl);
+  if (publicId) {
+    try {
+      await cloudinary.uploader.destroy(publicId);
+      console.log(`🗑️ Файл удален из Cloudinary: ${publicId}`);
+    } catch (error) {
+      console.error(
+        `⚠️ Ошибка удаления из Cloudinary (${publicId}):`,
+        error.message
+      );
+    }
+  }
+};
+
+// === Контроллеры ===
 
 // Создание нового товара
 export async function createProduct(req, res) {
@@ -69,7 +114,6 @@ export async function createProduct(req, res) {
 
     // 3. Обработка нот для поиска
     let notesTags = [];
-    // Если notesPyramid пришел как JSON строка, парсим его (бывает при multipart/form-data)
     let parsedNotes = notesPyramid;
     if (typeof notesPyramid === "string") {
       try {
@@ -214,6 +258,13 @@ export async function updateProduct(req, res) {
         });
       }
 
+      if (product.images && product.images.length > 0) {
+        await Promise.all(
+          product.images.map((imgUrl) => deleteFromCloudinary(imgUrl))
+        );
+      }
+
+      // Загружаем новые
       const uploadPromises = files.map((file) => {
         return cloudinary.uploader.upload(file.path, {
           folder: "products",
@@ -304,12 +355,137 @@ export async function updateOrderStatus(req, res) {
 // Получение списка всех клиентов
 export async function getAllCustomers(_, res) {
   try {
-    const customers = await User.find({ role: "user" }).sort({ createdAt: -1 });
+    const customers = await User.find().sort({ createdAt: -1 });
     res.status(200).json({ customers });
   } catch (error) {
     console.error("Ошибка в getAllCustomers:", error);
     res.status(500).json({
       message: "Не удалось загрузить список покупателей",
+      error: error.message,
+    });
+  }
+}
+
+// Редактирование данных клиента
+export async function updateCustomer(req, res) {
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, phone, role } = req.body;
+    const imageFile = req.file;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "Пользователь не найден" });
+    }
+
+    // 1. Обновляем текстовые поля
+    user.firstName = firstName || user.firstName;
+    user.lastName = lastName || user.lastName;
+    user.phone = phone || user.phone;
+    if (role) user.role = role;
+
+    // 2. Загрузка фото
+    if (imageFile) {
+      if (user.imageUrl) {
+        await deleteFromCloudinary(user.imageUrl);
+      }
+      try {
+        console.log("📤 [1/2] Загрузка в Cloudinary...");
+        const uploadResponse = await uploadToCloudinary(imageFile, "avatars");
+        user.imageUrl = uploadResponse.secure_url;
+        console.log("✅ Фото загружено:", user.imageUrl);
+      } catch (uploadError) {
+        console.error("⚠️ Ошибка Cloudinary:", uploadError.message);
+      }
+    }
+
+    // 3. Сохраняем в MongoDB
+    await user.save();
+
+    // 4. Синхронизация с Clerk
+    if (user.clerkId) {
+      try {
+        console.log("🔄 [2/2] Синхронизация с Clerk...");
+
+        // А. Обновляем текст (Имя, Фамилия, Роль)
+        await clerkClient.users.updateUser(user.clerkId, {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          publicMetadata: { role: user.role },
+        });
+
+        // Б. Обновляем аватар
+        if (imageFile) {
+          // 1. Создаем Blob из буфера
+          // Что такое Blob?
+          // Если Buffer — это просто "сырой" набор байтов в памяти сервера (набор нулей и единиц),
+          // то Blob (Binary Large Object) — это как "контейнер" для этих данных,
+          // который знает, какого они типа (MIME-type: image/jpeg, image/png).
+          const imageBlob = new Blob([imageFile.buffer], {
+            type: imageFile.mimetype,
+          });
+          // 2. Отправляем Blob
+          await clerkClient.users.updateUserProfileImage(user.clerkId, {
+            file: imageBlob,
+          });
+          console.log("✅ Аватарка в Clerk обновлена!");
+        }
+      } catch (clerkErr) {
+        console.error(
+          "⚠️ Ошибка обновления в Clerk:",
+          clerkErr.errors
+            ? JSON.stringify(clerkErr.errors, null, 2)
+            : clerkErr.message
+        );
+      }
+    }
+
+    res.status(200).json({ message: "Данные пользователя обновлены", user });
+  } catch (error) {
+    console.error("Ошибка в updateCustomer:", error);
+    res.status(500).json({
+      message: "Не удалось обновить пользователя",
+      error: error.message,
+    });
+  }
+}
+
+// Удаление клиента ([MongoDB + Clerk] + Корзина)
+export async function deleteCustomer(req, res) {
+  try {
+    const { id } = req.params;
+    const customer = await User.findById(id);
+
+    if (!customer) {
+      return res.status(404).json({ message: "Пользователь не найден" });
+    }
+
+    // 1. Удаляем корзину
+    await Cart.findOneAndDelete({ user: id });
+
+    // 1. Удаляем аватарку из Cloudinary
+    if (customer.imageUrl) {
+      await deleteFromCloudinary(customer.imageUrl);
+    }
+
+    // 3. Удаляем из Clerk
+    if (customer.clerkId) {
+      try {
+        await clerkClient.users.deleteUser(customer.clerkId);
+        console.log("✅ Пользователь удален из Clerk");
+      } catch (clerkError) {
+        console.error("⚠️ Ошибка при удалении из Clerk:", clerkError.message);
+      }
+    }
+
+    // 3. Удаляем из MongoDB
+    await User.findByIdAndDelete(id);
+
+    res.status(200).json({ message: "Пользователь успешно удален" });
+  } catch (error) {
+    console.error("Ошибка в deleteCustomer:", error);
+    res.status(500).json({
+      message: "Не удалось удалить пользователя",
       error: error.message,
     });
   }
@@ -351,9 +527,23 @@ export async function getDashboardStats(_, res) {
   }
 }
 
+// Удаление товара
 export async function deleteProduct(req, res) {
   try {
     const { id } = req.params;
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({ message: "Товар не найден" });
+    }
+
+    if (product.images && product.images.length > 0) {
+      await Promise.all(
+        product.images.map((imageUrl) => deleteFromCloudinary(imageUrl))
+      );
+    }
+
+    // Удаляем сам товар из базы данных
     await Product.findByIdAndDelete(id);
     res.status(200).json({ message: "Товар успешно удалён" });
   } catch (error) {
@@ -368,10 +558,88 @@ export async function deleteProduct(req, res) {
 // Получение списка всех брендов
 export async function getAllBrands(_, res) {
   try {
-    const brands = await Brand.find().select("name _id").sort({ name: 1 });
+    const brands = await Brand.find().sort({ name: 1 });
     res.status(200).json(brands);
   } catch (error) {
     console.error("Ошибка в getAllBrands:", error);
     res.status(500).json({ message: "Не удалось загрузить бренды" });
+  }
+}
+
+// Создание бренда
+export async function createBrand(req, res) {
+  try {
+    const { name } = req.body;
+    const imageFile = req.file;
+
+    if (!name) {
+      return res.status(400).json({ message: "Название бренда обязательно" });
+    }
+
+    let logoUrl = "";
+    if (imageFile) {
+      const uploadResponse = await uploadToCloudinary(imageFile, "brands");
+      logoUrl = uploadResponse.secure_url;
+    }
+
+    const brand = await Brand.create({
+      name,
+      logo: logoUrl,
+    });
+
+    res.status(201).json({ message: "Бренд успешно создан", brand });
+  } catch (error) {
+    console.error("Ошибка в createBrand:", error);
+    res.status(500).json({ message: "Ошибка при создании бренда" });
+  }
+}
+
+// Обновление бренда
+export async function updateBrand(req, res) {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    const imageFile = req.file;
+
+    const brand = await Brand.findById(id);
+    if (!brand) return res.status(404).json({ message: "Бренд не найден" });
+
+    if (name) brand.name = name;
+
+    if (imageFile) {
+      if (brand.logo) {
+        await deleteFromCloudinary(brand.logo);
+      }
+      const uploadResponse = await uploadToCloudinary(imageFile, "brands");
+      brand.logo = uploadResponse.secure_url;
+    }
+
+    await brand.save();
+    res.status(200).json({ message: "Бренд успешно обновлен", brand });
+  } catch (error) {
+    console.error("Ошибка в updateBrand:", error);
+    res.status(500).json({ message: "Ошибка при обновлении бренда" });
+  }
+}
+
+// Удаление бренда
+export async function deleteBrand(req, res) {
+  try {
+    const { id } = req.params;
+    const brand = await Brand.findById(id);
+
+    if (!brand) return res.status(404).json({ message: "Бренд не найден" });
+
+    if (brand.logo) {
+      await deleteFromCloudinary(brand.logo);
+    }
+
+    await Product.updateMany({ brand: id }, { $unset: { brand: "" } });
+    await Brand.findByIdAndDelete(id);
+
+    res.status(200).json({ message: "Бренд успешно удален" });
+  } catch (error) {
+    console.error("Ошибка в deleteBrand:", error);
+    res.status(500).json({ message: "Ошибка при удалении бренда" });
   }
 }
