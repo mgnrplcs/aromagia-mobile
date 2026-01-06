@@ -169,16 +169,16 @@ function BrandsPage() {
                     <ImageIcon className="w-10 h-10 text-base-content/20" />
                   )}
 
-                  {/* Кнопки — белый фон, темнеют при ховере */}
-                  <div className="absolute top-2 right-2 flex gap-1.5">
+                  {/* Кнопки  */}
+                  <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button
                       className="btn btn-sm btn-square 
-                 bg-base-300 border border-base-400 
-                 text-base-content/70 
-                 hover:border-primary hover:text-primary 
-                 hover:bg-base-300 
-                 shadow-sm hover:shadow-md 
-                 transition-all duration-200"
+            bg-base-300 border border-base-400 
+            text-base-content/70 
+            hover:border-primary hover:text-primary 
+            hover:bg-base-300 
+            shadow-sm hover:shadow-md 
+            transition-all duration-200"
                       onClick={() => handleEdit(brand)}
                       title="Редактировать"
                     >
@@ -187,12 +187,12 @@ function BrandsPage() {
 
                     <button
                       className="btn btn-sm btn-square 
-                 bg-base-300 border border-base-400 
-                 text-base-content/70 
-                 hover:border-error hover:text-error 
-                 hover:bg-base-300 
-                 shadow-sm hover:shadow-md 
-                 transition-all duration-200"
+            bg-base-300 border border-base-400 
+            text-base-content/70 
+            hover:border-error hover:text-error 
+            hover:bg-base-300 
+            shadow-sm hover:shadow-md 
+            transition-all duration-200"
                       onClick={() => handleDeleteClick(brand)}
                       title="Удалить"
                     >

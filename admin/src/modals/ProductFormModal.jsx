@@ -5,7 +5,7 @@ import {
   Trash2Icon,
   Pyramid,
   Palette,
-  Flame,
+  Zap,
   Tag,
   CreditCard,
   Package,
@@ -469,7 +469,7 @@ export default function ProductFormModal({
             <div className="flex items-center justify-between bg-base-100 border border-base-200 p-4 rounded-xl hover:border-base-300 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
-                  <Flame className="w-6 h-6 fill-orange-500" />
+                  <Zap className="w-6 h-6 fill-orange-500" />
                 </div>
                 <div className="flex flex-col">
                   <span className="font-bold text-base">«Хит продаж»</span>

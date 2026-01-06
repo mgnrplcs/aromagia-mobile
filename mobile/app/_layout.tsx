@@ -12,6 +12,7 @@ export default function RootLayout() {
     'Inter-Medium': require('../assets/fonts/Inter/Inter-Medium.otf'),
     'Inter-SemiBold': require('../assets/fonts/Inter/Inter-SemiBold.otf'),
     'Inter-Bold': require('../assets/fonts/Inter/Inter-Bold.otf'),
+    'Inter-ExtraBold': require('../assets/fonts/Inter/Inter-ExtraBold.otf'),
 
     // Raleway
     'Raleway-Light': require('../assets/fonts/Raleway/Raleway-Light.ttf'),
@@ -19,6 +20,7 @@ export default function RootLayout() {
     'Raleway-Medium': require('../assets/fonts/Raleway/Raleway-Medium.ttf'),
     'Raleway-SemiBold': require('../assets/fonts/Raleway/Raleway-SemiBold.ttf'),
     'Raleway-Bold': require('../assets/fonts/Raleway/Raleway-Bold.ttf'),
+    'Raleway-ExtraBold': require('../assets/fonts/Raleway/Raleway-ExtraBold.ttf'),
   });
 
   if (!loaded) {

@@ -8,7 +8,7 @@ import {
   SearchIcon,
   Filter,
   Package,
-  Flame,
+  Zap,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
@@ -213,8 +213,8 @@ function ProductsPage() {
                       <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl ring-1 ring-base-200 bg-base-50 flex items-center justify-center overflow-hidden">
                         {/* Бейджик ХИТ  */}
                         {product.isBestseller && (
-                          <div className="absolute top-1 left-2 z-10 badge badge-secondary text-white tracking-widest text-[9px] h-5 px-2 font-bold gap-0.5 shadow-sm border-none">
-                            <Flame className="w-2.5 h-2.5 fill-current" />
+                          <div className="absolute top-1.25 left-1.5 z-10 badge badge-secondary text-white tracking-widest text-[9px] h-5 px-2 font-bold gap-1 shadow-sm border-none">
+                            <Zap className="w-2.5 h-2.5 fill-current" />
                             ХИТ
                           </div>
                         )}

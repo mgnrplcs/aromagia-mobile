@@ -1,87 +1,118 @@
+// --- Бренды ---
+export interface Brand {
+  _id: string;
+  name: string;
+  logo: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// --- Товары ---
+export interface NotesPyramid {
+  top: string;
+  middle: string;
+  base: string;
+}
+
 export interface Product {
   _id: string;
   name: string;
+  brand: string | Brand;
   description: string;
   price: number;
+  volume: number;
   stock: number;
   category: string;
+  gender: 'Мужской' | 'Женский' | 'Унисекс';
+  scentFamily: string;
+  concentration:
+    | 'Духи'
+    | 'Парфюмерная вода'
+    | 'Туалетная вода'
+    | 'Одеколон'
+    | 'Мист'
+    | 'Масляные духи';
+  notesPyramid: NotesPyramid;
+  notesTags?: string[];
   images: string[];
   averageRating: number;
   totalReviews: number;
+  isBestseller: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// --- Покупатели ---
+export interface Address {
+  _id: string;
+  label: 'Дом' | 'Работа' | 'Офис' | 'Другое';
+  fullName: string;
+  phone: string;
+  streetAddress: string;
+  city: string;
+  region: string;
+  zipCode: string;
+  isDefault: boolean;
 }
 
 export interface User {
   _id: string;
   clerkId: string;
   email: string;
-  name: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
   imageUrl: string;
+  role: 'user' | 'admin';
   addresses: Address[];
-  wishlist: string[];
+  wishlist: string[] | Product[];
   createdAt: string;
   updatedAt: string;
 }
 
-export interface Address {
-  _id: string;
-  label: string;
-  fullName: string;
-  streetAddress: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  phoneNumber: string;
-  isDefault: boolean;
-}
-
-export interface Order {
-  _id: string;
-  user: string;
-  clerkId: string;
-  orderItems: OrderItem[];
-  shippingAddress: {
-    fullName: string;
-    streetAddress: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    phoneNumber: string;
-  };
-  paymentResult: {
-    id: string;
-    status: string;
-  };
-  totalPrice: number;
-  status: 'pending' | 'shipped' | 'delivered';
-  hasReviewed: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
+// --- Заказы ---
 export interface OrderItem {
-  _id: string;
-  product: Product;
+  _id?: string;
+  product: string | Product;
   name: string;
   price: number;
   quantity: number;
   image: string;
 }
 
-export interface Review {
+export interface OrderShippingAddress {
+  fullName: string;
+  phone: string;
+  streetAddress: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  isDefault: boolean;
+}
+
+export interface Order {
   _id: string;
-  productId: string;
-  userId: string | User;
-  orderId: string;
-  rating: number;
+  user: string | User;
+  clerkId: string;
+  orderItems: OrderItem[];
+  shippingAddress: OrderShippingAddress;
+  paymentResult?: {
+    id: string;
+    status: string;
+  };
+  totalPrice: number;
+  status: 'В ожидании' | 'Отправлен' | 'Доставлен';
+  deliveredAt?: string;
+  shippedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
 
+// --- Корзина ---
 export interface CartItem {
-  _id: string;
-  product: Product;
+  _id?: string;
+  product: string | Product;
   quantity: number;
 }
 
@@ -90,6 +121,19 @@ export interface Cart {
   user: string;
   clerkId: string;
   items: CartItem[];
+  totalPrice?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// --- Отзывы ---
+export interface Review {
+  _id: string;
+  productId: string | Product;
+  userId: string | User;
+  orderId: string | Order;
+  rating: number;
+  comment?: string;
   createdAt: string;
   updatedAt: string;
 }

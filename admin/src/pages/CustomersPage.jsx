@@ -252,7 +252,7 @@ function CustomersPage() {
 
                         {/* Избранное */}
                         <td className="text-center">
-                          <div className="badge badge-ghost gap-2 py-3 px-4">
+                          <div className="badge badge-ghost gap-1.5 py-3 px-4">
                             <Heart
                               className="w-3.5 h-3.5 text-error"
                               strokeWidth={2.5}

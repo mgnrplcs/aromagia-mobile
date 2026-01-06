@@ -197,10 +197,21 @@ export async function deleteAddress(req, res) {
   }
 }
 
+// Опции для глубокого заполнения (DRY)
+const wishlistPopulateOptions = {
+  path: "wishlist",
+  populate: {
+    path: "brand",
+    model: "Brand",
+  },
+};
+
 // Получения списка избранных товаров
 export async function getWishlist(req, res) {
   try {
-    const user = await User.findById(req.user._id).populate("wishlist");
+    const user = await User.findById(req.user._id).populate(
+      wishlistPopulateOptions
+    );
 
     res.status(200).json({ wishlist: user.wishlist });
   } catch (error) {
@@ -231,8 +242,7 @@ export async function addToWishlist(req, res) {
     user.wishlist.push(productId);
     await user.save();
 
-    // Это нужно, чтобы в приложении экран сразу обновился без перезагрузки
-    await user.populate("wishlist");
+    await user.populate(wishlistPopulateOptions);
 
     res.status(200).json({
       message: "Товар был добавлен в избранное",
@@ -258,8 +268,7 @@ export async function removeFromWishlist(req, res) {
     user.wishlist.pull(productId);
     await user.save();
 
-    // 2. Снова наполняем данными перед ответом
-    await user.populate("wishlist");
+    await user.populate(wishlistPopulateOptions);
 
     res.status(200).json({
       message: "Товар удалён из избранного",
