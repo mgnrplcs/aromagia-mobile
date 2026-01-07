@@ -10,6 +10,7 @@ const useWishlist = () => {
     data: wishlist,
     isLoading,
     isError,
+    refetch,
   } = useQuery({
     queryKey: ['wishlist'],
     queryFn: async () => {
@@ -50,6 +51,7 @@ const useWishlist = () => {
     wishlist: wishlist || [],
     isLoading,
     isError,
+    refetch,
     wishlistCount: wishlist?.length || 0,
     isInWishlist,
     toggleWishlist,

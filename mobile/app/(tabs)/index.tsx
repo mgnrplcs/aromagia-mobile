@@ -1,11 +1,13 @@
-import { View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
-import { useMemo, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
+import { useMemo, useState, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { getDeclension } from '@/lib/utils';
 
 import ProductsGrid from '@/components/ProductsGrid';
 import SafeScreen from '@/components/SafeScreen';
 import useProducts from '@/hooks/useProducts';
-import { getDeclension } from '@/lib/utils';
+import useWishlist from '@/hooks/useWishlist';
+import FilterModal, { SortOption, GenderOption } from '@/components/modals/FilterModal';
 
 // --- Категории ---
 const CATEGORIES = [
@@ -20,32 +22,66 @@ const CATEGORIES = [
 const ShopScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [refreshing, setRefreshing] = useState(false);
 
-  const { data: products, isLoading, isError } = useProducts();
+  const { data: products, isLoading, isError, refetch: refetchProducts } = useProducts();
+  const { refetch: refetchWishlist } = useWishlist();
+
+  // Вычисляем реальные цены (min/max)
+  const priceRange = useMemo(() => {
+    if (!products || products.length === 0) return { min: 0, max: 50000 };
+    const prices = products.map((p) => p.price);
+    return {
+      min: Math.min(...prices),
+      max: Math.max(...prices),
+    };
+  }, [products]);
+
+  // Стейты для фильтров
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [sortOption, setSortOption] = useState<SortOption>('popular');
+  const [minPrice, setMinPrice] = useState<string>('');
+  const [maxPrice, setMaxPrice] = useState<string>('');
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([refetchProducts(), refetchWishlist()]);
+    setRefreshing(false);
+  }, [refetchProducts, refetchWishlist]);
 
   const filteredProducts = useMemo(() => {
     if (!products) return [];
 
     let filtered = products;
 
-    // --- ФИЛЬТРАЦИЯ ---
+    // 1. Фильтрация по категории (Табы)
     if (selectedCategory !== 'All') {
-      if (selectedCategory === 'Female') {
-        filtered = filtered.filter((p) => p.gender === 'Женский');
-      } else if (selectedCategory === 'Male') {
+      if (selectedCategory === 'Female') filtered = filtered.filter((p) => p.gender === 'Женский');
+      else if (selectedCategory === 'Male')
         filtered = filtered.filter((p) => p.gender === 'Мужской');
-      } else if (selectedCategory === 'Unisex') {
+      else if (selectedCategory === 'Unisex')
         filtered = filtered.filter((p) => p.gender === 'Унисекс');
-      } else if (selectedCategory === 'Toilette') {
+      else if (selectedCategory === 'Toilette')
         filtered = filtered.filter((p) => p.concentration === 'Туалетная вода');
-      } else if (selectedCategory === 'Parfum') {
+      else if (selectedCategory === 'Parfum')
         filtered = filtered.filter(
           (p) => p.concentration === 'Духи' || p.concentration === 'Парфюмерная вода'
         );
-      }
     }
 
-    // Фильтрация по поиску
+    // 2. Фильтрация по цене
+    if (minPrice) filtered = filtered.filter((p) => p.price >= Number(minPrice));
+    if (maxPrice) filtered = filtered.filter((p) => p.price <= Number(maxPrice));
+
+    // 3. Сортировка
+    if (sortOption === 'price_asc') filtered = filtered.sort((a, b) => a.price - b.price);
+    else if (sortOption === 'price_desc') filtered = filtered.sort((a, b) => b.price - a.price);
+    else if (sortOption === 'newest')
+      filtered = filtered.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+    // 4. Поиск
     if (searchQuery.trim()) {
       filtered = filtered.filter((product) =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -53,9 +89,9 @@ const ShopScreen = () => {
     }
 
     return filtered;
-  }, [products, selectedCategory, searchQuery]);
+  }, [products, searchQuery, selectedCategory, sortOption, minPrice, maxPrice]);
 
-  const countText = getDeclension(filteredProducts.length, ['товар', 'товара', 'товаров']);
+  const itemsCount = filteredProducts.length;
 
   return (
     <SafeScreen>
@@ -63,40 +99,57 @@ const ShopScreen = () => {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#87e4ab']}
+            tintColor="#87e4ab"
+            progressViewOffset={20}
+          />
+        }
       >
         <View className="px-6 pb-4 pt-6">
-          <View className="flex-row items-center justify-between mb-6">
-            <View>
-              <Text className="text-text-primary text-3xl font-raleway-bold tracking-tight">
-                Каталог
-              </Text>
-            </View>
+          {/* Шапка */}
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-[#111827] text-3xl font-raleway-bold">Каталог</Text>
+            {itemsCount > 0 && (
+              <View className="bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
+                <Text className="text-primary text-sm font-inter-bold">
+                  {itemsCount} {getDeclension(itemsCount, ['товар', 'товара', 'товаров'])}
+                </Text>
+              </View>
+            )}
+          </View>
 
+          {/* Поиск + Кнопка */}
+          <View className="flex-row items-center">
+            <View className="flex-1 flex-row items-center px-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-200">
+              <Ionicons color={'#9CA3AF'} size={20} name="search" />
+              <TextInput
+                placeholder="Найти товары..."
+                placeholderTextColor={'#9CA3AF'}
+                className="flex-1 ml-3 text-[15px] text-[#111827] font-inter leading-5"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
             <TouchableOpacity
-              className="bg-surface border border-surface-gray p-3 rounded-full shadow-sm"
+              className="ml-3 w-[50px] h-[50px] bg-gray-50 border border-gray-200 rounded-2xl items-center justify-center active:bg-gray-100"
+              onPress={() => setIsFilterVisible(true)}
               activeOpacity={0.7}
             >
               <Ionicons name="options-outline" size={22} color={'#111827'} />
             </TouchableOpacity>
           </View>
-
-          <View className="bg-surface border border-surface-gray flex-row items-center px-5 py-4 rounded-2xl shadow-sm">
-            <Ionicons color={'#9CA3AF'} size={22} name="search" />
-            <TextInput
-              placeholder="Найти аромат..."
-              placeholderTextColor={'#9CA3AF'}
-              className="flex-1 ml-3 text-base text-text-primary font-inter-medium"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
         </View>
 
+        {/* Категории */}
         <View className="mb-6">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 24, gap: 12 }}
+            contentContainerStyle={{ paddingHorizontal: 24, gap: 8 }}
           >
             {CATEGORIES.map((category) => {
               const isSelected = selectedCategory === category.name;
@@ -104,14 +157,11 @@ const ShopScreen = () => {
                 <TouchableOpacity
                   key={category.name}
                   onPress={() => setSelectedCategory(category.name)}
-                  className={`px-5 py-2.5 rounded-full border ${
-                    isSelected ? 'bg-primary border-primary' : 'bg-surface border-surface-gray'
-                  }`}
+                  activeOpacity={0.8}
+                  className={`px-5 py-2.5 rounded-full border transition-all ${isSelected ? 'bg-[#111827] border-[#111827]' : 'bg-white border-gray-200'}`}
                 >
                   <Text
-                    className={`font-inter-bold text-sm ${
-                      isSelected ? 'text-white' : 'text-text-secondary'
-                    }`}
+                    className={`font-inter-semibold tracking-wide text-[13px] ${isSelected ? 'text-white' : 'text-[#6B7280]'}`}
                   >
                     {category.label}
                   </Text>
@@ -122,16 +172,41 @@ const ShopScreen = () => {
         </View>
 
         <View className="px-6 mb-6">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-text-primary text-lg font-raleway-bold">Товары</Text>
-            <Text className="text-text-secondary text-sm font-inter-medium">
-              {filteredProducts.length} {countText}
-            </Text>
-          </View>
-
-          <ProductsGrid products={filteredProducts} isLoading={isLoading} isError={isError} />
+          <ProductsGrid
+            products={filteredProducts}
+            isLoading={isLoading}
+            isError={isError}
+            onRetry={onRefresh}
+          />
         </View>
       </ScrollView>
+
+      {/* --- ИСПРАВЛЕННЫЙ ВЫЗОВ МОДАЛКИ --- */}
+      <FilterModal
+        visible={isFilterVisible}
+        onClose={() => setIsFilterVisible(false)}
+        // Значения
+        currentSort={sortOption}
+        minPrice={minPrice}
+        maxPrice={maxPrice}
+        // Передаем пол, только если он совпадает с валидными значениями, иначе All
+        currentGender={
+          ['Male', 'Female', 'Unisex'].includes(selectedCategory)
+            ? (selectedCategory as GenderOption)
+            : 'All'
+        }
+        // Динамические границы цен
+        absoluteMinPrice={priceRange.min}
+        absoluteMaxPrice={priceRange.max}
+        // Функции изменения (мгновенные)
+        setSort={setSortOption}
+        setMinPrice={setMinPrice}
+        setMaxPrice={setMaxPrice}
+        setGender={(gender) => {
+          // Если в модалке нажали "Все", ставим категорию "All". Иначе конкретный пол.
+          setSelectedCategory(gender === 'All' ? 'All' : gender);
+        }}
+      />
     </SafeScreen>
   );
 };

@@ -1,9 +1,9 @@
 import SafeScreen from '@/components/SafeScreen';
 import { useAuth, useUser } from '@clerk/clerk-expo';
-import { ScrollView, Text, TouchableOpacity, View, Switch } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View, Switch, RefreshControl } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { router } from 'expo-router';
 
 // Список меню "Мой аккаунт"
@@ -41,14 +41,20 @@ const ACCOUNT_ITEMS = [
 const ProfileScreen = () => {
   const { signOut } = useAuth();
   const { user } = useUser();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
+  // Состояния
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setImageError(false);
+    await user?.reload();
+    setRefreshing(false);
+  }, [user]);
   const handleNavigation = (path: string) => {
-    try {
-      router.push(path as any);
-    } catch (error) {
-      console.error('Ошибка навигации:', error);
-    }
+    router.push(path as any);
   };
 
   return (
@@ -57,23 +63,37 @@ const ProfileScreen = () => {
         className="flex-1 bg-background-subtle"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120, paddingTop: 20 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#87e4ab']}
+            tintColor="#87e4ab"
+            progressViewOffset={20}
+          />
+        }
       >
         {/* --- Карточка профиля --- */}
         <View className="mx-6 bg-white rounded-3xl border mt-4 border-gray-100 mb-6">
           <View className="px-5 py-5 flex-row items-center">
-            {/* Аватар */}
-            <View className="mr-5 relative">
-              {/* 4. Используем Image из expo-image */}
-              {user?.imageUrl ? (
+            <View className="mr-4 relative">
+              {user?.imageUrl && !imageError ? (
                 <Image
                   source={user.imageUrl}
                   style={{ width: 64, height: 64, borderRadius: 32 }}
-                  contentFit="cover" // Аналог resizeMode в expo-image
-                  transition={500} // Плавное появление
+                  contentFit="cover"
+                  transition={500}
+                  onError={() => setImageError(true)}
                 />
               ) : (
-                <View className="w-16 h-16 rounded-full bg-gray-100 items-center justify-center">
-                  <Ionicons name="person" size={30} color="#9CA3AF" />
+                <View className="w-16 h-16 rounded-full bg-gray-100 items-center justify-center border border-gray-200">
+                  <Text className="text-xl font-raleway-bold text-gray-400">
+                    {user?.firstName ? (
+                      user.firstName[0].toUpperCase()
+                    ) : (
+                      <Ionicons name="person" size={30} color="#9CA3AF" />
+                    )}
+                  </Text>
                 </View>
               )}
             </View>
@@ -111,7 +131,11 @@ const ProfileScreen = () => {
                     className="w-9 h-9 rounded-xl items-center justify-center mr-4"
                     style={{ backgroundColor: item.color }}
                   >
-                    <Ionicons name={item.icon as any} size={18} color="#FFFFFF" />
+                    <Ionicons
+                      name={item.icon as keyof typeof Ionicons.glyphMap}
+                      size={18}
+                      color="#FFFFFF"
+                    />
                   </View>
                   <Text className="text-[#111827] font-inter-medium text-[15px]">{item.title}</Text>
                 </View>
@@ -122,25 +146,43 @@ const ProfileScreen = () => {
         </View>
 
         {/* --- Приложение --- */}
-        <View className="px-6 mb-8">
+        <View className="px-6 mb-6">
           <View className="bg-white rounded-3xl overflow-hidden border border-gray-100">
             {/* Уведомления */}
             <View className="flex-row items-center justify-between p-4 border-b border-gray-100">
               <View className="flex-row items-center">
                 <View className="w-9 h-9 rounded-xl bg-[#8B5CF6] items-center justify-center mr-4">
-                  <Ionicons name="notifications" size={18} color="#FFFFFF" />
+                  <Ionicons
+                    name={notificationsEnabled ? 'notifications' : 'notifications-off'}
+                    size={18}
+                    color="#FFFFFF"
+                  />
                 </View>
                 <Text className="text-[#111827] font-inter-medium text-[15px]">Уведомления</Text>
               </View>
               <Switch
                 value={notificationsEnabled}
                 onValueChange={setNotificationsEnabled}
-                trackColor={{ false: '#E5E7EB', true: '#87e4ab' }}
+                trackColor={{ false: '#E5E7EB', true: '#3B82F6' }}
                 thumbColor={'#FFFFFF'}
               />
             </View>
 
-            {/* Безопасность */}
+            {/* Помощь */}
+            <TouchableOpacity
+              className="flex-row items-center justify-between p-4 border-b border-gray-100 active:bg-gray-50"
+              activeOpacity={0.7}
+              onPress={() => router.push('/help')}
+            >
+              <View className="flex-row items-center">
+                <View className="w-9 h-9 rounded-xl bg-[#0EA5E9] items-center justify-center mr-4">
+                  <Ionicons name="chatbubble-ellipses" size={18} color="#FFFFFF" />
+                </View>
+                <Text className="text-[#111827] font-inter-medium text-[15px]">Помощь</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
+            </TouchableOpacity>
+
             <TouchableOpacity
               className="flex-row items-center justify-between p-4 active:bg-gray-50"
               activeOpacity={0.7}
@@ -167,7 +209,9 @@ const ProfileScreen = () => {
             <View className="mr-2">
               <Ionicons name="log-out-outline" size={20} color="#EF4444" />
             </View>
-            <Text className="text-[#EF4444] font-inter-bold text-[15px]">Выйти из аккаунта</Text>
+            <Text className="text-[#EF4444] font-inter-semibold text-[15px]">
+              Выйти из аккаунта
+            </Text>
           </TouchableOpacity>
         </View>
 

@@ -1,162 +1,191 @@
-import useCart from '@/hooks/useCart';
-import useWishlist from '@/hooks/useWishlist';
-import { Product } from '@/types/types';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { formatPrice } from '@/lib/utils';
+import useCart from '@/hooks/useCart';
+import useWishlist from '@/hooks/useWishlist';
 import { toast } from 'sonner-native';
-import { formatPrice } from '@/lib/utils'; // Импортируем форматтер
+import { Brand, Product } from '@/types/types';
+import * as Haptics from 'expo-haptics';
+import PageLoader from './PageLoader';
+import ErrorState from '@/components/ErrorState';
 
 interface ProductsGridProps {
+  products: Product[] | undefined;
   isLoading: boolean;
   isError: boolean;
-  products: Product[];
+  onRetry?: () => void;
 }
 
-const ProductsGrid = ({ products, isLoading, isError }: ProductsGridProps) => {
-  const { isInWishlist, toggleWishlist, isAddingToWishlist, isRemovingFromWishlist } =
-    useWishlist();
+const ProductsGrid = ({ products, isLoading, isError, onRetry }: ProductsGridProps) => {
+  if (isLoading) {
+    return <PageLoader />;
+  }
 
-  const { isAddingToCart, addToCart } = useCart();
+  if (isError || !products) {
+    return <ErrorState onRetry={onRetry} contentContainerStyle="bg-transparent mt-24" />;
+  }
 
-  const handleAddToCart = (productId: string, productName: string) => {
+  // 3. ПУСТО (Красивая заглушка)
+  if (products.length === 0) {
+    return (
+      <View className="items-center justify-center min-h-[450px]">
+        <View className="bg-gray-50 p-5 rounded-full mb-3">
+          <Ionicons name="search" size={32} color="#9CA3AF" />
+        </View>
+        <Text className="text-[#111827] font-raleway-medium text-lg">Ничего не найдено</Text>
+        <Text className="text-[#6B7280] font-inter-light mt-1 text-base">
+          Попробуйте изменить запрос или фильтры
+        </Text>
+      </View>
+    );
+  }
+
+  // 4. СПИСОК ТОВАРОВ
+  return (
+    <View className="flex-row flex-wrap justify-between pb-10">
+      {products.map((item) => (
+        <ProductCard key={item._id} item={item} />
+      ))}
+    </View>
+  );
+};
+
+// --- КАРТОЧКА ТОВАРА  ---
+const ProductCard = ({ item }: { item: Product }) => {
+  const { addToCart, isAddingToCart } = useCart();
+  const { wishlist, addToWishlist, removeFromWishlist } = useWishlist();
+
+  const isActuallyInWishlist = wishlist.some((w) => w._id === item._id);
+  const [isLiked, setIsLiked] = useState(isActuallyInWishlist);
+
+  useEffect(() => {
+    setIsLiked(isActuallyInWishlist);
+  }, [isActuallyInWishlist]);
+
+  let brandName = 'Бренд';
+  if (item.brand && typeof item.brand === 'object' && 'name' in item.brand) {
+    brandName = (item.brand as Brand).name;
+  }
+
+  const handleWishlistPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const newStatus = !isLiked;
+    setIsLiked(newStatus);
+
+    if (newStatus) {
+      addToWishlist(item._id, {
+        onError: () => {
+          setIsLiked(false);
+          toast.error('Ошибка', { description: 'Не удалось добавить' });
+        },
+      });
+    } else {
+      removeFromWishlist(item._id, {
+        onError: () => {
+          setIsLiked(true);
+          toast.error('Ошибка', { description: 'Не удалось удалить' });
+        },
+      });
+    }
+  };
+
+  const handleAddToCart = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     addToCart(
-      { productId, quantity: 1 },
+      { productId: item._id, quantity: 1 },
       {
-        onSuccess: () => {
-          toast.success('Успешно', {
-            description: `${productName} добавлен в корзину!`,
-          });
-        },
-        onError: (error: any) => {
-          toast.error('Ошибка', {
-            description: error?.response?.data?.error || 'Не удалось добавить в корзину',
-          });
-        },
+        onSuccess: () => toast.success('В корзине!'),
       }
     );
   };
 
-  const renderProduct = ({ item: product }: { item: Product }) => (
+  return (
     <TouchableOpacity
-      className="bg-surface rounded-3xl overflow-hidden mb-3 border border-surface-gray"
-      style={{ width: '48%' }}
-      activeOpacity={0.8}
-      onPress={() => router.push(`/product/${product._id}` as any)}
+      className="bg-white w-[48%] rounded-[20px] p-3 mb-4 border border-gray-200"
+      activeOpacity={0.9}
+      onPress={() => router.push(`/product/${item._id}` as any)}
     >
-      <View className="relative">
-        <Image
-          source={{ uri: product.images[0] }}
-          className="w-full h-44 bg-surface-gray"
-          resizeMode="cover"
-        />
-
+      <View className="relative mb-3">
         <TouchableOpacity
-          className="absolute top-3 right-3 bg-white/80 p-2 rounded-full shadow-sm"
-          activeOpacity={0.7}
-          onPress={() => toggleWishlist(product._id)}
-          disabled={isAddingToWishlist || isRemovingFromWishlist}
+          className="absolute top-0.5 right-1 z-10 w-8 h-8 rounded-full bg-white/80 items-center justify-center backdrop-blur-md"
+          onPress={(e) => {
+            e.stopPropagation();
+            handleWishlistPress();
+          }}
         >
-          {isAddingToWishlist || isRemovingFromWishlist ? (
-            <ActivityIndicator size="small" color="#87e4ab" />
-          ) : (
-            <Ionicons
-              name={isInWishlist(product._id) ? 'heart' : 'heart-outline'}
-              size={18}
-              color={isInWishlist(product._id) ? '#EF4444' : '#6B7280'}
-            />
-          )}
+          <Ionicons
+            name={isLiked ? 'heart' : 'heart-outline'}
+            size={22}
+            color={isLiked ? '#EF4444' : '#9CA3AF'}
+          />
         </TouchableOpacity>
+
+        {item.isBestseller && (
+          <View className="absolute top-1 z-10 bg-red-400 px-2 py-1.5 rounded-full flex-row items-center">
+            <Ionicons name="flash" size={11} color="#FFFFFF" style={{ marginRight: 2.5 }} />
+            <Text className="text-white text-[10px] font-inter-extrabold tracking-wider uppercase">
+              Хит
+            </Text>
+          </View>
+        )}
+
+        <Image
+          source={item.images[0]}
+          style={{ width: '100%', height: 140, borderRadius: 16 }}
+          contentFit="cover"
+          className="bg-gray-50"
+        />
       </View>
 
-      <View className="p-3">
-        {/* Вместо категории показываем концентрацию (как просили) */}
-        <Text className="text-text-secondary text-xs mb-1 font-inter-medium" numberOfLines={1}>
-          {product.concentration}
+      <View className="mt-2">
+        <Text
+          className="text-[#9CA3AF] text-[10px] font-inter-bold uppercase tracking-wider mb-0.5"
+          numberOfLines={1}
+        >
+          {brandName}
         </Text>
-        <Text className="text-text-primary font-raleway-bold text-sm mb-2 h-10" numberOfLines={2}>
-          {product.name}
+
+        <Text
+          className="text-[#111827] font-raleway-bold text-[14px] leading-[18px] h-9"
+          numberOfLines={2}
+          textBreakStrategy="highQuality"
+        >
+          {item.name}
         </Text>
 
-        <View className="flex-row items-center mb-2">
-          <Ionicons name="star" size={12} color="#F59E0B" />
-          <Text className="text-text-primary text-xs font-inter-bold ml-1">
-            {product.averageRating.toFixed(1)}
-          </Text>
-          <Text className="text-text-secondary text-xs ml-1 font-inter-regular">
-            ({product.totalReviews})
-          </Text>
-        </View>
+        <Text className="text-[#111827] font-inter-extrabold text-[17px] -mt-1 mb-3">
+          {formatPrice(item.price)}
+        </Text>
 
-        <View className="flex-row items-center justify-between mt-1">
-          {/* Цена: 13 500 ₽ */}
-          <Text className="text-primary font-inter-bold text-lg">{formatPrice(product.price)}</Text>
-
+        {item.stock > 0 ? (
           <TouchableOpacity
-            className="bg-primary rounded-full w-8 h-8 items-center justify-center shadow-sm shadow-primary/30"
-            activeOpacity={0.7}
-            onPress={() => handleAddToCart(product._id, product.name)}
+            className="bg-primary w-full py-2.5 rounded-xl flex-row items-center justify-center active:bg-primary-dark"
+            onPress={(e) => {
+              e.stopPropagation();
+              handleAddToCart();
+            }}
             disabled={isAddingToCart}
           >
             {isAddingToCart ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color="white" />
             ) : (
-              <Ionicons name="add" size={20} color="#FFFFFF" />
+              <>
+                <Ionicons name="bag-handle" size={16} color="white" style={{ marginRight: 6 }} />
+                <Text className="text-white font-inter-bold text-[13px]">В корзину</Text>
+              </>
             )}
           </TouchableOpacity>
-        </View>
+        ) : (
+          <View className="bg-gray-100 w-full py-2.5 rounded-xl items-center justify-center">
+            <Text className="text-gray-400 font-inter-bold text-[12px]">Нет в наличии</Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
-  );
-
-  if (isLoading) {
-    return (
-      <View className="py-20 items-center justify-center">
-        <ActivityIndicator size="large" color="#87e4ab" />
-        <Text className="text-text-secondary mt-4 font-inter-medium">Загрузка товаров...</Text>
-      </View>
-    );
-  }
-
-  // Защита от undefined products
-  if (isError || !products) {
-    return (
-      <View className="py-20 items-center justify-center">
-        <Ionicons name="cloud-offline-outline" size={48} color="#EF4444" />
-        <Text className="text-text-primary font-raleway-bold mt-4">
-          Не удалось загрузить товары
-        </Text>
-        <Text className="text-text-secondary text-sm mt-2 font-inter-medium text-center px-10">
-          Проверьте соединение с интернетом или повторите попытку позже
-        </Text>
-      </View>
-    );
-  }
-
-  return (
-    <FlatList
-      data={products}
-      renderItem={renderProduct}
-      keyExtractor={(item) => item._id}
-      numColumns={2}
-      columnWrapperStyle={{ justifyContent: 'space-between' }}
-      showsVerticalScrollIndicator={false}
-      scrollEnabled={false}
-      ListEmptyComponent={NoProductsFound}
-    />
   );
 };
 
 export default ProductsGrid;
-
-function NoProductsFound() {
-  return (
-    <View className="py-20 items-center justify-center">
-      <Ionicons name="search-outline" size={48} color={'#9CA3AF'} />
-      <Text className="text-text-primary font-raleway-bold mt-4">Товары не найдены</Text>
-      <Text className="text-text-secondary text-sm mt-2 font-inter-medium">
-        Попробуйте изменить параметры поиска
-      </Text>
-    </View>
-  );
-}

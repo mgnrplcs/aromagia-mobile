@@ -21,9 +21,9 @@ module.exports = {
       },
       colors: {
         primary: {
-          DEFAULT: '#87e4ab', // Зеленый
-          light: '#86EFAC', // Светло-зеленый
-          dark: '#5dbb82', // Темно-зеленый
+          DEFAULT: '#3B82F6', // Синий
+          light: '#93C5FD', // Светло-синий
+          dark: '#1D4ED8', // Тёмно-синий
         },
         background: {
           DEFAULT: '#FFFFFF', // Белый
