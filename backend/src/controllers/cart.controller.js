@@ -1,4 +1,5 @@
 import { Cart } from "../models/cart.model.js";
+import { Coupon } from "../models/coupon.model.js";
 import { Product } from "../models/product.model.js";
 
 // Получение корзины текущего пользователя
@@ -14,6 +15,7 @@ export async function getCart(req, res) {
     if (!cart) {
       cart = await Cart.create({
         user: user._id,
+        clerkId: user.clerkId, // <--- ИСПРАВЛЕНО: Добавлено обязательное поле
         items: [],
       });
     }
@@ -49,6 +51,7 @@ export async function addToCart(req, res) {
     if (!cart) {
       cart = await Cart.create({
         user: user._id,
+        clerkId: user.clerkId, // <--- ИСПРАВЛЕНО: Добавлено обязательное поле
         items: [],
       });
     }
@@ -202,3 +205,91 @@ export const clearCart = async (req, res) => {
     });
   }
 };
+
+// Применить купон
+export async function applyCoupon(req, res) {
+  try {
+    const { code } = req.body;
+    const user = req.user;
+
+    const cart = await Cart.findOne({ user: user._id }).populate(
+      "items.product"
+    );
+
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ error: "Корзина пуста" });
+    }
+
+    const coupon = await Coupon.findOne({ code: code.toUpperCase() });
+
+    if (!coupon) {
+      return res.status(404).json({ error: "Купон не найден" });
+    }
+
+    if (!coupon.isActive) {
+      return res.status(400).json({ error: "Этот купон отключен" });
+    }
+
+    // Проверка дат
+    const now = new Date();
+    if (now < coupon.validFrom) {
+      return res.status(400).json({ error: "Действие купона еще не началось" });
+    }
+    if (now > coupon.validUntil) {
+      return res.status(400).json({ error: "Срок действия купона истёк" });
+    }
+
+    // Проверка лимита использований
+    if (coupon.maxUsage > 0 && coupon.usedCount >= coupon.maxUsage) {
+      return res
+        .status(400)
+        .json({ error: "Лимит использования этого купона исчерпан" });
+    }
+
+    // Считаем сумму
+    const cartTotal = cart.items.reduce(
+      (acc, item) => acc + item.product.price * item.quantity,
+      0
+    );
+
+    // Проверка минимальной суммы
+    if (cartTotal < coupon.minPurchaseAmount) {
+      return res.status(400).json({
+        error: `Минимальная сумма заказа для этого купона: ${coupon.minPurchaseAmount} ₽`,
+      });
+    }
+
+    // Если всё ок
+    cart.coupon = coupon._id;
+    await cart.save();
+    await cart.populate("coupon");
+
+    res.status(200).json({ message: "Купон успешно применен", cart });
+  } catch (error) {
+    console.error("Ошибка applyCoupon:", error);
+    res.status(500).json({ message: "Ошибка сервера", error: error.message });
+  }
+}
+
+// Удаление купона
+export async function removeCoupon(req, res) {
+  try {
+    const user = req.user;
+    const cart = await Cart.findOne({ user: user._id });
+
+    if (cart) {
+      cart.coupon = null;
+      await cart.save();
+    }
+
+    // Нужно вернуть актуальную корзину
+    await cart.populate({
+      path: "items.product",
+      select: "name price images",
+    });
+
+    res.status(200).json({ message: "Купон удален", cart });
+  } catch (error) {
+    res.status(500).json({ message: "Ошибка сервера", error: error.message });
+  }
+}

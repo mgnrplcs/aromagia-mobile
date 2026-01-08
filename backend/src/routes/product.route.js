@@ -10,13 +10,11 @@ const router = Router();
 
 router.use(protectRoute);
 
-// 🛍️ Основные товары
-router.get("/", getAllProducts);
-
 // ✨ Рекомендации
 router.get("/recommendations", getRecommendedProducts);
 
-// 🔍 Товар по ID
+// 🛍️ Товары
+router.get("/", getAllProducts);
 router.get("/:id", getProductById);
 
 export default router;

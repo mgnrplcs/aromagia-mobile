@@ -2,19 +2,31 @@ import { Router } from "express";
 import { upload } from "../middleware/multer.middleware.js";
 import {
   getDashboardStats,
+  // Товары
   getAllProducts,
   createProduct,
   updateProduct,
   deleteProduct,
+  // Заказы
   getAllOrders,
   updateOrderStatus,
+  // Пользователи
   getAllCustomers,
   updateCustomer,
   deleteCustomer,
+  // Бренды
   getAllBrands,
   createBrand,
   updateBrand,
   deleteBrand,
+  // Купоны
+  getAllCoupons,
+  createCoupon,
+  deleteCoupon,
+  toggleCouponActive,
+  // Возвраты
+  getAllReturns,
+  updateReturnStatus,
 } from "../controllers/admin.controller.js";
 import { protectRoute, adminOnly } from "../middleware/auth.middleware.js";
 
@@ -42,6 +54,16 @@ router.delete("/brands/:id", deleteBrand);
 router.get("/customers", getAllCustomers);
 router.put("/customers/:id", upload.single("image"), updateCustomer);
 router.delete("/customers/:id", deleteCustomer);
+
+// 🎫 Управление купонами
+router.get("/coupons", getAllCoupons);
+router.post("/coupons", createCoupon);
+router.delete("/coupons/:id", deleteCoupon);
+router.patch("/coupons/:id/toggle", toggleCouponActive);
+
+// ↩️ Управление возвратами
+router.get("/returns", getAllReturns);
+router.patch("/returns/:id/status", updateReturnStatus);
 
 // 📊 Аналитика и отчеты
 router.get("/stats", getDashboardStats);

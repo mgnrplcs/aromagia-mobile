@@ -170,33 +170,24 @@ function BrandsPage() {
                   )}
 
                   {/* Кнопки  */}
-                  <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+
+                  <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    {/* Кнопка Редактировать */}
                     <button
-                      className="btn btn-sm btn-square 
-            bg-base-300 border border-base-400 
-            text-base-content/70 
-            hover:border-primary hover:text-primary 
-            hover:bg-base-300 
-            shadow-sm hover:shadow-md 
-            transition-all duration-200"
+                      className="btn btn-square btn-sm bg-base-100 border border-base-200 hover:border-primary hover:text-primary"
                       onClick={() => handleEdit(brand)}
                       title="Редактировать"
                     >
-                      <PencilIcon className="w-4 h-4" strokeWidth={2.5} />
+                      <PencilIcon className="w-4 h-4" />
                     </button>
 
+                    {/* Кнопка Удалить */}
                     <button
-                      className="btn btn-sm btn-square 
-            bg-base-300 border border-base-400 
-            text-base-content/70 
-            hover:border-error hover:text-error 
-            hover:bg-base-300 
-            shadow-sm hover:shadow-md 
-            transition-all duration-200"
+                      className="btn btn-square btn-sm bg-base-100 border border-base-200 hover:border-error hover:text-error hover:bg-error/10"
                       onClick={() => handleDeleteClick(brand)}
                       title="Удалить"
                     >
-                      <Trash2Icon className="w-4 h-4" strokeWidth={2.5} />
+                      <Trash2Icon className="w-4 h-4" />
                     </button>
                   </div>
                 </div>

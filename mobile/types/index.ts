@@ -39,6 +39,9 @@ export interface Product {
   averageRating: number;
   totalReviews: number;
   isBestseller: boolean;
+  article?: string;
+  ingredients?: string;
+  country?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -121,7 +124,9 @@ export interface Cart {
   user: string;
   clerkId: string;
   items: CartItem[];
-  totalPrice?: number;
+  subtotal: number;
+  totalPrice: number;
+  coupon?: string | Coupon | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -134,6 +139,41 @@ export interface Review {
   orderId: string | Order;
   rating: number;
   comment?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// --- Купоны ---
+export interface Coupon {
+  _id: string;
+  code: string;
+  discountAmount: number;
+  minPurchaseAmount: number;
+  validFrom: string;
+  validUntil: string;
+  maxUsage: number;
+  usedCount: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/// --- Возвраты ---
+export interface ReturnItem {
+  product: string | Product;
+  quantity: number;
+}
+
+export interface ReturnRequest {
+  _id: string;
+  user: string | User;
+  order: string | Order;
+  items: ReturnItem[];
+  reason: 'Брак' | 'Не тот товар' | 'Не подошло' | 'Другое';
+  details?: string;
+  images: string[];
+  status: 'Ожидает рассмотрения' | 'Одобрено' | 'Отклонено' | 'Возврат выполнен';
+  adminComment?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -11,13 +11,9 @@ const router = Router();
 
 router.use(protectRoute);
 
-// 👀 Просмотр отзывов
+// ✍️ Отзывы
 router.get("/product/:productId", getProductReviews);
-
-// ✍️ Оставить отзыв
 router.post("/", createReview);
-
-// 🗑️ Удалить отзыв
 router.delete("/:reviewId", deleteReview);
 
 export default router;

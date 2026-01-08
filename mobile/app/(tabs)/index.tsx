@@ -135,7 +135,7 @@ const ShopScreen = () => {
               />
             </View>
             <TouchableOpacity
-              className="ml-3 w-[50px] h-[50px] bg-gray-50 border border-gray-200 rounded-2xl items-center justify-center active:bg-gray-100"
+              className="ml-3 w-[46px] h-[46px] bg-gray-50 border border-gray-200 rounded-2xl items-center justify-center active:bg-gray-100"
               onPress={() => setIsFilterVisible(true)}
               activeOpacity={0.7}
             >

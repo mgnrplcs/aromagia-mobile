@@ -7,7 +7,7 @@ import { formatPrice } from '@/lib/utils';
 import useCart from '@/hooks/useCart';
 import useWishlist from '@/hooks/useWishlist';
 import { toast } from 'sonner-native';
-import { Brand, Product } from '@/types/types';
+import { Brand, Product } from '@/types';
 import * as Haptics from 'expo-haptics';
 import PageLoader from './PageLoader';
 import ErrorState from '@/components/ErrorState';
@@ -124,7 +124,7 @@ const ProductCard = ({ item }: { item: Product }) => {
         </TouchableOpacity>
 
         {item.isBestseller && (
-          <View className="absolute top-1 z-10 bg-red-400 px-2 py-1.5 rounded-full flex-row items-center">
+          <View className="absolute top-1 left-0.5 z-10 bg-red-400 px-2 py-1.5 rounded-full flex-row items-center">
             <Ionicons name="flash" size={11} color="#FFFFFF" style={{ marginRight: 2.5 }} />
             <Text className="text-white text-[10px] font-inter-extrabold tracking-wider uppercase">
               Хит
@@ -142,14 +142,14 @@ const ProductCard = ({ item }: { item: Product }) => {
 
       <View className="mt-2">
         <Text
-          className="text-[#9CA3AF] text-[10px] font-inter-bold uppercase tracking-wider mb-0.5"
+          className="text-[#111827] text-[12px] font-raleway-bold uppercase tracking-widest mb-0.5"
           numberOfLines={1}
         >
           {brandName}
         </Text>
 
         <Text
-          className="text-[#111827] font-raleway-bold text-[14px] leading-[18px] h-9"
+          className="text-[#111827] font-raleway-medium text-[14px] tracking-wide leading-[18px] h-9"
           numberOfLines={2}
           textBreakStrategy="highQuality"
         >

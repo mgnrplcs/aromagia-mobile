@@ -5,60 +5,15 @@ import { Order } from "../models/order.model.js";
 import { User } from "../models/user.model.js";
 import { Brand } from "../models/brand.model.js";
 import { Cart } from "../models/cart.model.js";
+import { Coupon } from "../models/coupon.model.js";
+import { ReturnRequest } from "../models/return.model.js";
 
-// === Вспомогательные функции ===
+import {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+} from "../utils/cloudinary.js";
 
-// Утилита для загрузки в Cloudinary
-// Превращает файл из памяти (buffer) в base64 и отправляет в облако
-const uploadToCloudinary = async (file, folder) => {
-  if (!file || !file.buffer) {
-    throw new Error("Файл не содержит бинарных данных (buffer)");
-  }
-
-  const b64 = Buffer.from(file.buffer).toString("base64");
-  const dataURI = "data:" + file.mimetype + ";base64," + b64;
-
-  return cloudinary.uploader.upload(dataURI, {
-    folder: folder,
-    resource_type: "auto",
-    timeout: 60000, // 60 секунд
-  });
-};
-
-// 2. Утилита для получения public_id из ссылки
-// Нужна, чтобы знать, какой файл удалять. Из "https://.../folder/image.jpg" делает "folder/image"
-const getPublicIdFromUrl = (imageUrl) => {
-  try {
-    // Регулярное выражение находит всё, что идет после "/upload/" и до расширения файла (.jpg)
-    const regex = /\/upload\/(?:v\d+\/)?(.+)\.[^.]+$/;
-
-    const match = imageUrl.match(regex);
-
-    // match[1] вернет "products/filename" или "avatars/filename"
-    return match ? match[1] : null;
-  } catch (error) {
-    console.error("Некорректный формат ссылки Cloudinary:", imageUrl);
-    return null;
-  }
-};
-
-// 3. Утилита для удаления файла из Cloudinary по ссылке
-const deleteFromCloudinary = async (imageUrl) => {
-  const publicId = getPublicIdFromUrl(imageUrl);
-  if (publicId) {
-    try {
-      await cloudinary.uploader.destroy(publicId);
-      console.log(`🗑️ Файл удален из Cloudinary: ${publicId}`);
-    } catch (error) {
-      console.error(
-        `⚠️ Ошибка удаления из Cloudinary (${publicId}):`,
-        error.message
-      );
-    }
-  }
-};
-
-// === Контроллеры ===
+// === Товары ===
 
 // Создание нового товара
 export async function createProduct(req, res) {
@@ -289,6 +244,36 @@ export async function updateProduct(req, res) {
   }
 }
 
+// Удаление товара
+export async function deleteProduct(req, res) {
+  try {
+    const { id } = req.params;
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({ message: "Товар не найден" });
+    }
+
+    if (product.images && product.images.length > 0) {
+      await Promise.all(
+        product.images.map((imageUrl) => deleteFromCloudinary(imageUrl))
+      );
+    }
+
+    // Удаляем сам товар из базы данных
+    await Product.findByIdAndDelete(id);
+    res.status(200).json({ message: "Товар успешно удалён" });
+  } catch (error) {
+    console.error("Ошибка в deleteProduct:", error);
+    res.status(500).json({
+      message: "Не удалось удалить товар",
+      error: error.message,
+    });
+  }
+}
+
+// === Заказы ===
+
 // Получение списка всех заказов
 export async function getAllOrders(_, res) {
   try {
@@ -351,6 +336,8 @@ export async function updateOrderStatus(req, res) {
     });
   }
 }
+
+// === Клиенты ===
 
 // Получение списка всех клиентов
 export async function getAllCustomers(_, res) {
@@ -418,13 +405,12 @@ export async function updateCustomer(req, res) {
         if (imageFile) {
           // 1. Создаем Blob из буфера
           // Что такое Blob?
-          // Если Buffer — это просто "сырой" набор байтов в памяти сервера (набор нулей и единиц),
-          // то Blob (Binary Large Object) — это как "контейнер" для этих данных,
-          // который знает, какого они типа (MIME-type: image/jpeg, image/png).
+          //   Если Buffer — это просто "сырой" набор байтов в памяти сервера (набор нулей и единиц),
+          //   то Blob (Binary Large Object) — это как "контейнер" для этих данных,
+          //   который знает, какого они типа (MIME-type: image/jpeg, image/png).
           const imageBlob = new Blob([imageFile.buffer], {
             type: imageFile.mimetype,
           });
-          // 2. Отправляем Blob
           await clerkClient.users.updateUserProfileImage(user.clerkId, {
             file: imageBlob,
           });
@@ -491,6 +477,8 @@ export async function deleteCustomer(req, res) {
   }
 }
 
+// === Статистика ===
+
 // Статистика для Dashboard
 export async function getDashboardStats(_, res) {
   try {
@@ -527,33 +515,7 @@ export async function getDashboardStats(_, res) {
   }
 }
 
-// Удаление товара
-export async function deleteProduct(req, res) {
-  try {
-    const { id } = req.params;
-    const product = await Product.findById(id);
-
-    if (!product) {
-      return res.status(404).json({ message: "Товар не найден" });
-    }
-
-    if (product.images && product.images.length > 0) {
-      await Promise.all(
-        product.images.map((imageUrl) => deleteFromCloudinary(imageUrl))
-      );
-    }
-
-    // Удаляем сам товар из базы данных
-    await Product.findByIdAndDelete(id);
-    res.status(200).json({ message: "Товар успешно удалён" });
-  } catch (error) {
-    console.error("Ошибка в deleteProduct:", error);
-    res.status(500).json({
-      message: "Не удалось удалить товар",
-      error: error.message,
-    });
-  }
-}
+// === Бренды ===
 
 // Получение списка всех брендов
 export async function getAllBrands(_, res) {
@@ -641,5 +603,87 @@ export async function deleteBrand(req, res) {
   } catch (error) {
     console.error("Ошибка в deleteBrand:", error);
     res.status(500).json({ message: "Ошибка при удалении бренда" });
+  }
+}
+
+// === Промокоды ===
+
+// Получение списка всех промокодов
+export async function getAllCoupons(req, res) {
+  try {
+    const coupons = await Coupon.find().sort({ createdAt: -1 });
+    res.json(coupons);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+// Создание промокода
+export async function createCoupon(req, res) {
+  try {
+    const existing = await Coupon.findOne({ code: req.body.code });
+    if (existing)
+      return res.status(400).json({ message: "Код уже существует" });
+
+    const coupon = await Coupon.create(req.body);
+    res.status(201).json(coupon);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+// Удаление промокода
+export async function deleteCoupon(req, res) {
+  try {
+    await Coupon.findByIdAndDelete(req.params.id);
+    res.json({ message: "Удалено" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+// Включение промокода
+export async function toggleCouponActive(req, res) {
+  try {
+    const coupon = await Coupon.findById(req.params.id);
+    if (coupon) {
+      coupon.isActive = !coupon.isActive;
+      await coupon.save();
+      res.json(coupon);
+    } else {
+      res.status(404).json({ message: "Не найдено" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+// === Возвраты ===
+
+// Получить список всех возвратов
+export async function getAllReturns(req, res) {
+  try {
+    const returns = await ReturnRequest.find()
+      .populate("user", "firstName lastName email")
+      .populate("order", "clerkId totalPrice")
+      .sort({ createdAt: -1 });
+    res.json(returns);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+// Обновление статуса возврата
+export async function updateReturnStatus(req, res) {
+  try {
+    const { status, adminComment } = req.body;
+    const updated = await ReturnRequest.findByIdAndUpdate(
+      req.params.id,
+      { status, adminComment },
+      { new: true }
+    );
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 }

@@ -9,10 +9,9 @@ import {
   TouchableOpacity,
   View,
   RefreshControl,
-  Modal,
 } from 'react-native';
 import { toast } from 'sonner-native';
-import { Brand, Product } from '@/types/types';
+import { Brand, Product } from '@/types';
 import { useState, useEffect, useCallback } from 'react';
 
 import SafeScreen from '@/components/SafeScreen';
@@ -66,8 +65,6 @@ function WishlistScreen() {
     addToCart(
       { productId, quantity: 1 },
       {
-        onSuccess: () =>
-          toast.success('Успешно', { description: `${productName} добавлен в корзину!` }),
         onError: (error: any) => {
           toast.error('Ошибка', {
             description: error?.response?.data?.error || 'Не удалось добавить',
@@ -123,27 +120,27 @@ function WishlistScreen() {
             onRefresh={onRefresh}
             colors={['#87e4ab']}
             tintColor="#87e4ab"
-            progressViewOffset={15}
+            progressViewOffset={25}
           />
         }
       >
         {itemsCount === 0 ? (
-          <View className="flex-1 items-center justify-center px-6 mt-40">
-            <View className="w-24 h-24 bg-gray-100 rounded-full items-center justify-center mb-6">
-              <Ionicons name="heart-outline" size={48} color="#D1D5DB" />
+          <View className="flex-1 items-center justify-center px-6 mt-48">
+            <View className="w-24 h-24 bg-gray-100 rounded-full items-center justify-center mb-4">
+              <Ionicons name="heart-outline" size={48} color="#FF453A" />
             </View>
             <Text className="text-[#111827] font-raleway-bold text-2xl text-center">
               Ваш список пуст
             </Text>
-            <Text className="text-[#6B7280] text-center mt-3 font-inter-light leading-6 px-8 text-base">
-              Добавляйте товары, кликая на сердечко в каталоге
+            <Text className="text-[#6B7280] text-center mt-2.5 font-inter-light leading-7 px-8 text-[15px]">
+              Чтобы не потерять понравившийся товар, добавьте его в избранное
             </Text>
             <TouchableOpacity
-              className="bg-white border border-gray-200 px-8 py-3.5 rounded-full flex-row items-center shadow-sm active:bg-gray-50 mt-8"
+              className="bg-white border border-gray-200 px-8 py-2.5 rounded-full flex-row items-center active:bg-gray-50 mt-4"
               activeOpacity={0.8}
               onPress={() => router.push('/(tabs)')}
             >
-              <Text className="text-[#111827] font-inter-bold text-base">В каталог</Text>
+              <Text className="text-[#111827] font-inter-semibold text-base">В каталог</Text>
             </TouchableOpacity>
           </View>
         ) : (

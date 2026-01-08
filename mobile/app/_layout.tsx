@@ -36,7 +36,7 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <Providers>
         <Stack screenOptions={{ headerShown: false }}></Stack>
       </Providers>

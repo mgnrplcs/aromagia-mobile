@@ -41,11 +41,11 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 // --- ХЕЛПЕРЫ ДЛЯ ЦЕНЫ ---
 const formatNumber = (num: string | number) => {
   if (!num && num !== 0) return '';
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); // 1000 -> 1 000
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 };
 
 const unformatNumber = (str: string) => {
-  return str.replace(/\s/g, ''); // 1 000 -> 1000
+  return str.replace(/\s/g, '');
 };
 
 export default function FilterModal({
@@ -169,7 +169,7 @@ export default function FilterModal({
         <Animated.View
           className="bg-white w-full overflow-hidden "
           style={{
-            height: '62%',
+            height: '75%',
             paddingBottom: insets.bottom,
             transform: [{ translateY: panY }],
           }}
@@ -195,7 +195,7 @@ export default function FilterModal({
 
           <ScrollView className="px-6 pt-5" showsVerticalScrollIndicator={false}>
             {/* 1. СОРТИРОВКА */}
-            <View className="mb-7">
+            <View className="mb-6">
               <Text className="text-[#111827] font-inter-semibold text-[15px] mb-3.5">
                 Сортировка
               </Text>
@@ -264,8 +264,8 @@ export default function FilterModal({
             </View>
 
             {/* 3. ПОЛ */}
-            <View className="mb-8">
-              <Text className="text-[#111827] font-inter-semibold text-[15px] mb-3.5">Пол</Text>
+            <View>
+              <Text className="text-[#111827] font-inter-semibold text-[15px] mb-2.5">Пол</Text>
               <View className="flex-row gap-2.5 flex-wrap">
                 <SortChip
                   label="Все"
@@ -292,7 +292,7 @@ export default function FilterModal({
           </ScrollView>
 
           {/* КНОПКА СБРОСИТЬ */}
-          <View className="px-6 pb-6 pt-3 bg-white border-t border-gray-50 shadow-sm">
+          <View className="px-6 bg-white">
             <TouchableOpacity
               onPress={handleReset}
               activeOpacity={0.7}

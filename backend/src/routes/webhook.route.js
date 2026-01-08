@@ -1,19 +1,20 @@
 import express from "express";
 import { Webhook } from "svix";
 import { inngest } from "../config/inngest.js";
+import { handleWebhook as handleStripeWebhook } from "../controllers/payment.controller.js";
 
 const router = express.Router();
 
+// 1. Clerk Webhook
 router.post(
   "/clerk",
-  // Используем raw parser, чтобы получить тело запроса как Buffer для проверки подписи
   express.raw({ type: "application/json" }),
   async (req, res) => {
     try {
       const SIGNING_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
       if (!SIGNING_SECRET) {
-        console.error("❌ ОШИБКА: Нет CLERK_WEBHOOK_SECRET в .env");
+        console.error("💥 Ошибка: Нет CLERK_WEBHOOK_SECRET в .env");
         return res.status(500).json({ error: "Server misconfiguration" });
       }
 
@@ -25,7 +26,7 @@ router.post(
       console.log(`📥 [Webhook] Получен запрос от Clerk. ID: ${svix_id}`);
 
       if (!svix_id || !svix_timestamp || !svix_signature) {
-        console.error("❌ ОШИБКА: Нет svix заголовков");
+        console.error("💥 Ошибка: Нет svix заголовков");
         return res.status(400).send("Error: Missing svix headers");
       }
 
@@ -40,7 +41,7 @@ router.post(
           "svix-signature": svix_signature,
         });
       } catch (err) {
-        console.error("❌ ОШИБКА: Подпись не совпала:", err.message);
+        console.error("💥 Ошибка: Подпись не совпала:", err.message);
         return res.status(400).send("Webhook verification failed");
       }
 
@@ -58,9 +59,7 @@ router.post(
         });
         console.log(`🚀 [Inngest] Событие clerk/${type} отправлено!`);
       } catch (inngestErr) {
-        console.error("❌ ОШИБКА Inngest:", inngestErr);
-        // Не возвращаем 500, чтобы Clerk не пытался повторить запрос бесконечно,
-        // если ошибка на нашей стороне inngest, но вебхук принят.
+        console.error("💥 Ошибка Inngest:", inngestErr);
       }
 
       return res.status(200).json({ success: true });
@@ -69,6 +68,13 @@ router.post(
       return res.status(500).json({ error: "Internal Server Error" });
     }
   }
+);
+
+// 2. Stripe Webhook
+router.post(
+  "/stripe",
+  express.raw({ type: "application/json" }),
+  handleStripeWebhook
 );
 
 export default router;

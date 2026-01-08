@@ -1,6 +1,9 @@
 import { Router } from "express";
 
-import { createOrder, getUserOrders } from "../controllers/order.controller.js";
+import {
+  createPaymentIntent,
+  handleWebhook,
+} from "../controllers/payment.controller.js";
 
 import { protectRoute } from "../middleware/auth.middleware.js";
 
@@ -8,8 +11,7 @@ const router = Router();
 
 router.use(protectRoute);
 
-// 📦 Заказы
-router.post("/", createOrder);
-router.get("/", getUserOrders);
+// 💸 Платежи
+router.post("/create-intent", createPaymentIntent);
 
 export default router;

@@ -69,12 +69,12 @@ const ProfileScreen = () => {
             onRefresh={onRefresh}
             colors={['#87e4ab']}
             tintColor="#87e4ab"
-            progressViewOffset={20}
+            progressViewOffset={25}
           />
         }
       >
         {/* --- Карточка профиля --- */}
-        <View className="mx-6 bg-white rounded-3xl border mt-4 border-gray-100 mb-6">
+        <View className="mx-6 bg-white rounded-3xl border mt-1 border-gray-100 mb-6">
           <View className="px-5 py-5 flex-row items-center">
             <View className="mr-4 relative">
               {user?.imageUrl && !imageError ? (
@@ -103,10 +103,7 @@ const ProfileScreen = () => {
               <Text className="text-[#111827] text-xl font-raleway-bold mb-0.5" numberOfLines={1}>
                 {user?.firstName} {user?.lastName}
               </Text>
-              <Text
-                className="text-[#6B7280] text-sm font-inter-medium opacity-80"
-                numberOfLines={1}
-              >
+              <Text className="text-[#6B7280] text-[14px] font-inter opacity-80" numberOfLines={1}>
                 {user?.emailAddresses?.[0]?.emailAddress}
               </Text>
             </View>

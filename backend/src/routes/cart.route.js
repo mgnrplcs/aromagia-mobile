@@ -6,25 +6,23 @@ import {
   updateQuantity,
   removeFromCart,
   clearCart,
+  applyCoupon,
+  removeCoupon,
 } from "../controllers/cart.controller.js";
 
 const router = Router();
 
 router.use(protectRoute);
 
-// 🛒 Получить корзину
+// 🛒 Корзина
 router.get("/", getCart);
-
-// ➕ Добавить товар в корзину
 router.post("/", addToCart);
-
-// 🔢 Обновить количество товара
 router.put("/:productId", updateQuantity);
-
-// 🗑️ Удалить один товар из корзины
 router.delete("/:productId", removeFromCart);
-
-// 🧹 Очистить всю корзину
 router.delete("/", clearCart);
+
+// 🎫 Промокоды
+router.post("/coupon", applyCoupon);
+router.delete("/coupon", removeCoupon);
 
 export default router;

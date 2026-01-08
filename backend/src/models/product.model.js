@@ -76,6 +76,18 @@ const productSchema = new mongoose.Schema(
         required: true,
       },
     ],
+    article: {
+      type: String,
+      required: true,
+    },
+    ingredients: {
+      type: String,
+      default: "",
+    },
+    country: {
+      type: String,
+      default: "",
+    },
     averageRating: {
       type: Number,
       min: 0,

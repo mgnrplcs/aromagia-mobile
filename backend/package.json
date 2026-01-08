@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "seed:products": "node src/seeds/index.js"
+    "seed:products": "node src/seeds/index.js",
+    "stripe": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +23,7 @@
     "inngest": "^3.48.1",
     "mongoose": "^8.19.3",
     "multer": "^2.0.2",
+    "stripe": "^20.1.2",
     "svix": "^1.84.1"
   }
 }

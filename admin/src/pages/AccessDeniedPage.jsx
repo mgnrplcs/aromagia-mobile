@@ -58,7 +58,7 @@ function AccessDeniedPage() {
       </div>
 
       {/* 3. Блок техподдержки (справа внизу) */}
-      <div className="absolute bottom-6 right-6 flex items-center gap-4.5 opacity-70 transition-opacity">
+      <div className="absolute bottom-6 right-6 flex items-center gap-3 opacity-70 transition-opacity">
         <div className="flex flex-col items-end gap-2">
           <a
             href="mailto:aromagia@service.ru"
