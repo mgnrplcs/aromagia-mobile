@@ -169,7 +169,7 @@ function ProductsPage() {
           <div className="relative w-full sm:w-64">
             <input
               type="text"
-              placeholder="Поиск..."
+              placeholder="Поиск товара..."
               className="input input-bordered w-full pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -265,7 +265,7 @@ function ProductsPage() {
                       {/* Нижний блок: Характеристики */}
                       <div className="flex gap-8 border-t border-base-100 pt-2">
                         <div>
-                          <p className="text-[11px] opacity-60 font-bold uppercase tracking-wider">
+                          <p className="text-[11px] opacity-60 font-semibold uppercase tracking-wider">
                             Цена
                           </p>
                           {/* Шрифт extrabold для большей жирности */}

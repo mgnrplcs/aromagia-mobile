@@ -8,6 +8,7 @@ import {
   PencilIcon,
   Trash2Icon,
   ImageIcon,
+  Filter,
 } from "lucide-react";
 import { brandApi } from "../lib/api";
 import PageLoader from "../components/PageLoader";
@@ -117,7 +118,7 @@ function BrandsPage() {
           </div>
         </div>
 
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex gap-3 w-full sm:w-auto">
           <div className="relative w-full sm:w-64">
             <input
               type="text"
@@ -128,6 +129,9 @@ function BrandsPage() {
             />
             <Search className="w-4 h-4 absolute left-3 top-3 text-base-content/50" />
           </div>
+          <button className="btn btn-square btn-ghost border border-base-200">
+            <Filter className="w-5 h-5 text-base-content" />
+          </button>
           <button
             onClick={handleCreate}
             className="btn btn-outline btn-primary gap-1.5"
@@ -183,7 +187,7 @@ function BrandsPage() {
 
                     {/* Кнопка Удалить */}
                     <button
-                      className="btn btn-square btn-sm bg-base-100 border border-base-200 hover:border-error hover:text-error hover:bg-error/10"
+                      className="btn btn-square btn-sm bg-base-100 border border-base-200 hover:border-error hover:text-error"
                       onClick={() => handleDeleteClick(brand)}
                       title="Удалить"
                     >

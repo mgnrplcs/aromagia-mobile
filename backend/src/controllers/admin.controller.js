@@ -279,7 +279,7 @@ export async function getAllOrders(_, res) {
   try {
     const orders = await Order.find()
       // 1. Забираем данные пользователя
-      .populate("user", "firstName lastName email phone")
+      .populate("user", "firstName lastName email phone imageUrl")
       // 2. Забираем данные о товарах
       .populate("orderItems.product")
       .sort({ createdAt: -1 })
@@ -485,13 +485,54 @@ export async function deleteCustomer(req, res) {
 
 // === Статистика ===
 
+// === Вспомогательная функция для получения статистики за 7 дней ===
+async function getLast7DaysStats(Model, sumField = null) {
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  // 1. Агрегация данных из БД
+  const stats = await Model.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: sevenDaysAgo },
+      },
+    },
+    {
+      $group: {
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+        v: { $sum: sumField ? `$${sumField}` : 1 },
+      },
+    },
+    { $sort: { _id: 1 } },
+  ]);
+
+  // 2. Заполнение пропусков
+  // (чтобы были все 7 дней, даже если продаж не было)
+  const result = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+
+    const found = stats.find((s) => s._id === dateStr);
+    result.push({
+      date: dateStr,
+      v: found ? found.v : 0,
+    });
+  }
+
+  return result;
+}
+
 // Статистика для Dashboard
 export async function getDashboardStats(_, res) {
   try {
-    // 1. Количество заказов
+    // 1. Общие цифры
     const totalOrders = await Order.countDocuments();
+    const totalCustomers = await User.countDocuments({ role: "user" });
+    const totalProducts = await Product.countDocuments();
 
-    // 2. Общая выручка (сумма всех totalPrice)
     const revenueResult = await Order.aggregate([
       {
         $group: {
@@ -502,15 +543,23 @@ export async function getDashboardStats(_, res) {
     ]);
     const totalRevenue = revenueResult[0]?.total || 0;
 
-    // 3. Количество пользователей и товаров
-    const totalCustomers = await User.countDocuments({ role: "user" });
-    const totalProducts = await Product.countDocuments();
+    // 2. Данные для графиков
+    const revenueChart = await getLast7DaysStats(Order, "totalPrice");
+    const ordersChart = await getLast7DaysStats(Order);
+    const customersChart = await getLast7DaysStats(User);
+    const productsChart = await getLast7DaysStats(Product);
 
     res.status(200).json({
       totalRevenue,
       totalOrders,
       totalCustomers,
       totalProducts,
+      charts: {
+        revenue: revenueChart,
+        orders: ordersChart,
+        customers: customersChart,
+        products: productsChart,
+      },
     });
   } catch (error) {
     console.error("Ошибка в getDashboardStats:", error);
@@ -537,7 +586,7 @@ export async function getAllBrands(_, res) {
 // Создание бренда
 export async function createBrand(req, res) {
   try {
-    const { name } = req.body;
+    const { name, description } = req.body;
     const imageFile = req.file;
 
     if (!name) {
@@ -552,6 +601,7 @@ export async function createBrand(req, res) {
 
     const brand = await Brand.create({
       name,
+      description: description || "",
       logo: logoUrl,
     });
 
@@ -566,13 +616,17 @@ export async function createBrand(req, res) {
 export async function updateBrand(req, res) {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, description } = req.body;
     const imageFile = req.file;
 
     const brand = await Brand.findById(id);
     if (!brand) return res.status(404).json({ message: "Бренд не найден" });
 
     if (name) brand.name = name;
+
+    if (description !== undefined) {
+      brand.description = description;
+    }
 
     if (imageFile) {
       if (brand.logo) {
@@ -659,6 +713,38 @@ export async function toggleCouponActive(req, res) {
     } else {
       res.status(404).json({ message: "Не найдено" });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+// Обновление промокода
+export async function updateCoupon(req, res) {
+  try {
+    const { id } = req.params;
+    const { code } = req.body;
+
+    // Проверяем, существует ли купон
+    const coupon = await Coupon.findById(id);
+    if (!coupon) {
+      return res.status(404).json({ message: "Купон не найден" });
+    }
+
+    // Если код меняется, проверяем уникальность
+    if (code && code !== coupon.code) {
+      const existing = await Coupon.findOne({ code });
+      if (existing) {
+        return res.status(400).json({ message: "Такой код уже существует" });
+      }
+    }
+
+    // Обновляем поля
+    const updatedCoupon = await Coupon.findByIdAndUpdate(id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.json(updatedCoupon);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

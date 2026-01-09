@@ -95,7 +95,7 @@ function CustomersPage() {
   if (isLoading) return <PageLoader />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 tracking-wide">
       {/* Шапка */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-base-100 p-4 rounded-xl shadow-sm">
         {/* Левая часть: Заголовок */}
@@ -116,7 +116,7 @@ function CustomersPage() {
           <div className="relative w-full sm:w-64">
             <input
               type="text"
-              placeholder="Поиск по имени или email..."
+              placeholder="Поиск клиента..."
               className="input input-bordered w-full pl-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -145,8 +145,9 @@ function CustomersPage() {
               <table className="table table-lg whitespace-nowrap">
                 <thead className="bg-base-200/50 text-base-content/70">
                   <tr>
-                    <th>Клиент</th>
-                    <th>Электронная почта</th>
+                    <th>ID клиента</th>
+                    <th className="w-68">Клиент</th>
+                    <th className="w-82">Электронная почта</th>
                     <th>Дата регистрации</th>
                     <th className="text-center">Адресы</th>
                     <th className="text-center">Избранное</th>
@@ -163,13 +164,19 @@ function CustomersPage() {
                         key={customer._id}
                         className="hover:bg-base-50 transition-colors group"
                       >
-                        {/* Клиент */}
+                        {/* 1. Столбец ID */}
+                        <td>
+                          <div className="font-semibold text-base-content text-xs bg-base-200 px-2 py-1 rounded-md w-fit">
+                            #{customer._id.slice(-6).toUpperCase()}
+                          </div>
+                        </td>
+
+                        {/* 2. Клиент  */}
                         <td>
                           <div className="flex items-center gap-3">
-                            {/* Обертка для позиционирования */}
                             <div className="relative">
                               <div className="avatar">
-                                <div className="w-12 h-12 rounded-full ring-1 ring-base-200 bg-base-100 flex items-center justify-center overflow-hidden">
+                                <div className="w-11 h-11 rounded-full ring-1 ring-base-200 bg-base-100 flex items-center justify-center overflow-hidden">
                                   {customer.imageUrl ? (
                                     <img
                                       src={customer.imageUrl}
@@ -182,7 +189,7 @@ function CustomersPage() {
                                 </div>
                               </div>
 
-                              {/* ⚙️ БЕЙДЖ АДМИНА */}
+                              {/* Бейдж админа */}
                               {customer.role === "admin" && (
                                 <div
                                   className="absolute -bottom-1 -right-1 w-5.5 h-5.5 rounded-full bg-base-300 border border-base-100 flex items-center justify-center shadow-sm z-10"
@@ -196,13 +203,16 @@ function CustomersPage() {
                             </div>
 
                             <div>
-                              <div className="font-bold text-base">
+                              <div className="font-semibold text-sm">
                                 {customer.firstName || customer.lastName
                                   ? `${customer.firstName} ${customer.lastName}`.trim()
                                   : "Без имени"}
                               </div>
-                              <div className="text-xs text-base-content/50 font-thin mt-0.5">
-                                ID: {customer._id.slice(-6).toUpperCase()}
+
+                              <div className="text-xs mt-px text-base-content/50">
+                                {customer.role === "admin"
+                                  ? "Администратор"
+                                  : "Клиент"}
                               </div>
                             </div>
                           </div>
@@ -211,8 +221,8 @@ function CustomersPage() {
                         {/* Электронная почта */}
                         <td>
                           <div className="flex items-center gap-2 text-sm">
-                            <div className="w-8 h-8 rounded-full bg-base-200 flex items-center justify-center shrink-0">
-                              <Mail className="w-4 h-4 text-base-content/70" />
+                            <div className="w-10 h-10  rounded-full bg-base-200 flex items-center justify-center shrink-0">
+                              <Mail className="w-5 h-5 text-base-content/70" />
                             </div>
                             <span className="font-medium text-base-content/80">
                               {customer.email}
@@ -220,15 +230,24 @@ function CustomersPage() {
                           </div>
                         </td>
 
-                        {/* Дата регистрации */}
+                        {/* Дата регистрации  */}
                         <td>
-                          <div className="flex items-center gap-2 text-sm">
-                            <div className="w-8 h-8 rounded-full bg-base-200 flex items-center justify-center shrink-0">
-                              <Calendar className="w-4 h-4 text-base-content/70" />
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-base-200 flex items-center justify-center shrink-0">
+                              <Calendar className="w-5 h-5 text-base-content/70" />
                             </div>
-                            <span className="font-medium text-base-content/80">
-                              {formatDate(customer.createdAt)}
-                            </span>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-sm text-base-content/80">
+                                {customer.createdAt
+                                  ? formatDate(customer.createdAt).split(",")[0]
+                                  : "-"}
+                              </span>
+                              <span className="text-xs text-base-content/50">
+                                {customer.createdAt
+                                  ? formatDate(customer.createdAt).split(",")[1]
+                                  : ""}
+                              </span>
+                            </div>
                           </div>
                         </td>
 
@@ -252,7 +271,7 @@ function CustomersPage() {
 
                         {/* Избранное */}
                         <td className="text-center">
-                          <div className="badge badge-ghost gap-1.5 py-3 px-4">
+                          <div className="badge badge-ghost gap-2 py-3 px-4">
                             <Heart
                               className="w-3.5 h-3.5 text-error"
                               strokeWidth={2.5}

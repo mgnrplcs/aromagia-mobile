@@ -24,6 +24,7 @@ import {
   createCoupon,
   deleteCoupon,
   toggleCouponActive,
+  updateCoupon,
   // Возвраты
   getAllReturns,
   updateReturnStatus,
@@ -59,6 +60,7 @@ router.delete("/customers/:id", deleteCustomer);
 router.get("/coupons", getAllCoupons);
 router.post("/coupons", createCoupon);
 router.delete("/coupons/:id", deleteCoupon);
+router.put("/coupons/:id", updateCoupon);
 router.patch("/coupons/:id/toggle", toggleCouponActive);
 
 // ↩️ Управление возвратами

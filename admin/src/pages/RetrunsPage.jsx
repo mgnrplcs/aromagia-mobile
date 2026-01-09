@@ -3,47 +3,48 @@ import { useAuth } from "@clerk/clerk-react";
 import { Link } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ShoppingBag,
+  Undo2,
   Search,
   Calendar,
-  Package,
-  CreditCard,
-  User,
+  FileText,
   Filter,
+  ShoppingBag,
+  User,
 } from "lucide-react";
-import { orderApi } from "../lib/api";
-import { formatDate, getDeclension, getOrderStatusColor } from "../lib/utils";
+import { returnApi } from "../lib/api";
+import { formatDate, getReturnStatusColor } from "../lib/utils";
 import PageLoader from "../components/PageLoader";
 
-const STATUS_OPTIONS = [
-  { value: "В ожидании", label: "В ожидании" },
-  { value: "Оплачен", label: "Оплачен" },
-  { value: "Отправлен", label: "Отправлен" },
-  { value: "Доставлен", label: "Доставлен" },
-  { value: "Отменен", label: "Отменен" },
+// Опции статусов согласно вашей схеме Mongoose
+const RETURN_STATUS_OPTIONS = [
+  { value: "Ожидает рассмотрения", label: "Ожидает рассмотрения" },
+  { value: "Одобрено", label: "Одобрено" },
+  { value: "Отклонено", label: "Отклонено" },
+  { value: "Возврат выполнен", label: "Возврат выполнен" },
 ];
 
-function OrdersPage() {
+function ReturnsPage() {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: ordersData, isLoading } = useQuery({
-    queryKey: ["orders"],
+  // --- Загрузка ---
+  const { data: returnsData, isLoading } = useQuery({
+    queryKey: ["returns"],
     queryFn: async () => {
       const token = await getToken();
-      return orderApi.getAll(token);
+      return returnApi.getAll(token);
     },
   });
 
+  // --- Мутация статуса ---
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ orderId, status }) => {
+    mutationFn: async ({ id, status }) => {
       const token = await getToken();
-      return orderApi.updateStatus({ orderId, status }, token);
+      return returnApi.updateStatus({ id, status, adminComment: "" }, token);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["returns"] });
     },
     onError: (error) => {
       const message = error.response?.data?.message || error.message;
@@ -51,23 +52,25 @@ function OrdersPage() {
     },
   });
 
-  const handleStatusChange = (orderId, newStatus) => {
-    updateStatusMutation.mutate({ orderId, status: newStatus });
+  const handleStatusChange = (id, newStatus) => {
+    updateStatusMutation.mutate({ id, status: newStatus });
   };
 
-  const orders =
-    ordersData?.orders || (Array.isArray(ordersData) ? ordersData : []) || [];
+  const returns = Array.isArray(returnsData) ? returnsData : [];
 
-  const filteredOrders = orders.filter((order) => {
+  // --- Фильтрация ---
+  const filteredReturns = returns.filter((item) => {
     const searchLower = searchTerm.toLowerCase();
-    const orderId = order._id ? order._id.slice(-6).toLowerCase() : "";
-    const customerName = order.shippingAddress?.fullName?.toLowerCase() || "";
-    const city = order.shippingAddress?.city?.toLowerCase() || "";
+    const returnId = item._id ? item._id.slice(-6).toLowerCase() : "";
+    const customerName = item.user
+      ? `${item.user.firstName} ${item.user.lastName}`.toLowerCase()
+      : "";
+    const email = item.user?.email?.toLowerCase() || "";
 
     return (
-      orderId.includes(searchLower) ||
+      returnId.includes(searchLower) ||
       customerName.includes(searchLower) ||
-      city.includes(searchLower)
+      email.includes(searchLower)
     );
   });
 
@@ -79,12 +82,12 @@ function OrdersPage() {
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-base-100 p-4 rounded-xl shadow-sm">
         <div className="flex items-center gap-4 w-full sm:w-auto">
           <div className="p-3 bg-primary/10 rounded-xl text-primary shrink-0">
-            <ShoppingBag className="w-8 h-8" />
+            <Undo2 className="w-8 h-8" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold font-raleway">Заказы</h1>
+            <h1 className="text-2xl font-bold font-raleway">Возвраты</h1>
             <p className="text-base-content/70 text-sm">
-              Всего заказов: {orders.length}
+              Всего заявок: {returns.length}
             </p>
           </div>
         </div>
@@ -93,7 +96,7 @@ function OrdersPage() {
           <div className="relative w-full sm:w-64">
             <input
               type="text"
-              placeholder="Поиск заказа..."
+              placeholder="Поиск заявки..."
               className="input input-bordered w-full pl-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -108,66 +111,61 @@ function OrdersPage() {
 
       <div className="card bg-base-100 shadow-sm border border-base-200">
         <div className="card-body p-0">
-          {filteredOrders.length === 0 ? (
+          {filteredReturns.length === 0 ? (
             <div className="text-center py-20 text-base-content/50">
-              <div className="flex justify-center mb-4">
-                <ShoppingBag className="w-16 h-16 opacity-20" />
+              <div className="flex justify-center mb-2">
+                <Undo2 className="w-16 h-16 opacity-20" />
               </div>
-              <p className="text-xl font-semibold mb-1">Заказы не найдены</p>
+              <p className="text-xl font-semibold mb-1">Заявки не найдены</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="table table-lg whitespace-nowrap">
                 <thead className="bg-base-200/50 text-base-content/70">
                   <tr>
-                    <th className="w-38">ID заказа</th>
-                    <th className="w-88">Клиент</th>
+                    <th className="w-px">ID возврата</th>
+                    <th className="max-w-50 w-[20%]">Клиент</th>
                     <th>Дата</th>
-                    <th>Товары</th>
+                    <th>Заказ</th>
+                    <th>Причина</th>
                     <th>Статус</th>
-                    <th>Сумма</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOrders.map((order) => {
-                    const customer = order.user || {};
-                    let displayName = "Аноним";
+                  {filteredReturns.map((item) => {
+                    const customer = item.user || {};
+                    const order = item.order || {};
 
+                    // Формируем имя
+                    let displayName = "Аноним";
                     if (customer.firstName || customer.lastName) {
                       displayName = `${customer.firstName || ""} ${
                         customer.lastName || ""
                       }`.trim();
-                    } else if (order.shippingAddress?.fullName) {
-                      displayName = order.shippingAddress.fullName;
                     }
-
-                    const totalQuantity = order.orderItems.reduce(
-                      (sum, item) => sum + item.quantity,
-                      0
-                    );
 
                     const isUpdating =
                       updateStatusMutation.isPending &&
-                      updateStatusMutation.variables?.orderId === order._id;
+                      updateStatusMutation.variables?.id === item._id;
 
-                    const statusColor = getOrderStatusColor(order.status);
+                    const statusColor = getReturnStatusColor(item.status);
 
                     return (
                       <tr
-                        key={order._id}
+                        key={item._id}
                         className="hover:bg-base-50 transition-colors group"
                       >
                         {/* 1. ID */}
                         <td>
                           <div className="font-semibold text-base-content text-xs bg-base-200 px-2 py-1 rounded-md w-fit">
-                            #{order._id.slice(-6).toUpperCase()}
+                            #{item._id.slice(-6).toUpperCase()}
                           </div>
                         </td>
 
-                        {/* 2. Клиент  */}
-                        <td>
+                        {/* 2. Клиент */}
+                        <td className="max-w-50">
                           <div className="flex items-center gap-3">
-                            <div className="avatar">
+                            <div className="avatar shrink-0">
                               <div className="w-10 h-10 rounded-full ring-1 ring-base-200 bg-base-100 flex items-center justify-center overflow-hidden">
                                 {customer.imageUrl ? (
                                   <img
@@ -181,77 +179,104 @@ function OrdersPage() {
                               </div>
                             </div>
 
-                            <div>
+                            <div className="flex flex-col min-w-0">
                               <Link
                                 to="/customers"
-                                className="font-semibold text-sm hover:text-primary hover:underline transition-colors block w-fit"
+                                className="font-semibold text-sm hover:text-primary hover:underline transition-colors block truncate"
                                 title="Перейти к клиентам"
                               >
                                 {displayName}
                               </Link>
-
-                              <div className="text-xs text-base-content/50 flex items-center gap-1.5">
-                                {order.shippingAddress?.streetAddress ||
-                                  order.shippingAddress?.city}
+                              <div className="text-xs text-base-content/50 truncate">
+                                {customer.email}
                               </div>
                             </div>
                           </div>
                         </td>
-                        {/* 3. Дата  */}
+
+                        {/* 3. Дата */}
                         <td>
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-base-200 flex items-center justify-center shrink-0">
-                              <Calendar className="w-5 h-5 text-base-content/70" />
+                            <div className="w-8 h-8 rounded-full bg-base-200 flex items-center justify-center shrink-0">
+                              <Calendar className="w-4 h-4 text-base-content/70" />
                             </div>
                             <div className="flex flex-col">
                               <span className="font-medium text-sm">
-                                {order.createdAt
-                                  ? formatDate(order.createdAt).split(",")[0]
+                                {item.createdAt
+                                  ? formatDate(item.createdAt).split(",")[0]
                                   : "-"}
                               </span>
                               <span className="text-xs text-base-content/50">
-                                {order.createdAt
-                                  ? formatDate(order.createdAt).split(",")[1]
+                                {item.createdAt
+                                  ? formatDate(item.createdAt).split(",")[1]
                                   : ""}
                               </span>
                             </div>
                           </div>
                         </td>
-                        {/* 4. Товары  */}
+
+                        {/* 4. Заказ (Ссылка) */}
                         <td>
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-base-200 flex items-center justify-center shrink-0">
-                              <Package className="w-5 h-5 text-primary" />
+                            <div className="w-8 h-8 rounded-full bg-base-200 flex items-center justify-center shrink-0">
+                              <ShoppingBag className="w-4 h-4 text-base-content/70" />
                             </div>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-sm">
-                                {totalQuantity}{" "}
-                                {getDeclension(totalQuantity, [
-                                  "товар",
-                                  "товара",
-                                  "товаров",
-                                ])}
+                            {order._id ? (
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-sm">
+                                  #{order._id.slice(-6).toUpperCase()}
+                                </span>
+                                <span className="text-xs text-base-content/50">
+                                  {order.totalPrice
+                                    ? `${order.totalPrice.toLocaleString()} ₽`
+                                    : "Сумма скрыта"}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-base-content/50">
+                                Не найден
                               </span>
-                              <span className="text-xs text-base-content/50 max-w-40 truncate">
-                                {order.orderItems[0]?.name}
-                                {order.orderItems.length > 1 &&
-                                  `, (+${order.orderItems.length - 1})`}
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 5. Причина */}
+                        <td>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-base-200 flex items-center justify-center shrink-0">
+                              <FileText className="w-4 h-4 text-primary" />
+                            </div>
+                            <div className="flex flex-col max-w-xs">
+                              <span
+                                className="font-medium text-sm truncate"
+                                title={item.reason}
+                              >
+                                {item.reason}
                               </span>
+                              {item.details && (
+                                <span
+                                  className="text-xs text-base-content/50 truncate"
+                                  title={item.details}
+                                >
+                                  {item.details}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </td>
-                        {/* 5. Статус  */}
+
+                        {/* 6. Статус */}
                         <td>
                           <div className="relative w-fit">
                             <select
-                              value={order.status}
+                              value={item.status}
                               onChange={(e) =>
-                                handleStatusChange(order._id, e.target.value)
+                                handleStatusChange(item._id, e.target.value)
                               }
                               disabled={isUpdating}
                               className={`select select-sm select-bordered font-bold tracking-wide focus:outline-none pr-8 ${statusColor}`}
                             >
-                              {STATUS_OPTIONS.map((opt) => (
+                              {RETURN_STATUS_OPTIONS.map((opt) => (
                                 <option
                                   key={opt.value}
                                   value={opt.value}
@@ -269,17 +294,6 @@ function OrdersPage() {
                             )}
                           </div>
                         </td>
-                        {/* 6. Сумма  */}
-                        <td>
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-base-200 flex items-center justify-center shrink-0">
-                              <CreditCard className="w-5 h-5 text-base-content/70" />
-                            </div>
-                            <span className="font-semibold text-base">
-                              {order.totalPrice?.toLocaleString("ru-RU")} ₽
-                            </span>
-                          </div>
-                        </td>
                       </tr>
                     );
                   })}
@@ -293,4 +307,4 @@ function OrdersPage() {
   );
 }
 
-export default OrdersPage;
+export default ReturnsPage;

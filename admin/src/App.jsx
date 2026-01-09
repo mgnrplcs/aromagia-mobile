@@ -12,11 +12,12 @@ import NotFoundPage from "./pages/NotFoundPage";
 import DashboardLayout from "./layouts/DashboardLayout";
 import PageLoader from "./components/PageLoader";
 import AdminRoute from "./components/AdminRoute";
+import CouponsPage from "./pages/CouponsPage";
+import ReturnsPage from "./pages/RetrunsPage";
 
 function App() {
   const { isLoaded, isSignedIn } = useAuth();
 
-  // Глобальный лоадер инициализации Clerk
   if (!isLoaded) {
     return <PageLoader />;
   }
@@ -24,7 +25,6 @@ function App() {
   return (
     <Routes>
       {/* === ПУБЛИЧНАЯ ЗОНА === */}
-      {/* Если юзер уже вошел, со страницы логина кидаем сразу в админку */}
       <Route
         path="/login"
         element={
@@ -33,8 +33,6 @@ function App() {
       />
 
       {/* === ЗАЩИЩЕННАЯ ЗОНА (ADMIN) === */}
-      {/* 1. Сначала срабатывает AdminRoute. Он проверит роль. */}
-      {/* Если не админ — покажет AccessDeniedPage. Layout даже не загрузится. */}
       <Route element={<AdminRoute />}>
         {/* 2. Если роль OK, грузится DashboardLayout (Сайдбар + Навбар) */}
         <Route element={<DashboardLayout />}>
@@ -47,6 +45,8 @@ function App() {
           <Route path="brands" element={<BrandsPage />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="customers" element={<CustomersPage />} />
+          <Route path="coupons" element={<CouponsPage />} />
+          <Route path="returns" element={<ReturnsPage />} />
 
           {/* 404 для неизвестных страниц внутри админки */}
           <Route path="*" element={<NotFoundPage />} />

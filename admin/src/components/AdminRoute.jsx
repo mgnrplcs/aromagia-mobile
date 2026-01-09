@@ -16,7 +16,6 @@ const AdminRoute = () => {
       // 1. Ждем Clerk
       if (!isLoaded) return;
 
-      // 2. Если не залогинен - останавливаем проверку, редирект сработает ниже
       if (!isSignedIn) {
         setIsRoleChecking(false);
         return;
@@ -56,7 +55,6 @@ const AdminRoute = () => {
   }
 
   // 4. Если Админ -> Рендерим дочерние роуты (Outlet)
-  // Именно сюда подставится DashboardLayout и страницы
   return <Outlet />;
 };
 

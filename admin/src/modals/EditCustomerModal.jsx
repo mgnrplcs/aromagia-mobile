@@ -226,7 +226,7 @@ export default function EditCustomerModal({
               </label>
               <div className="join w-full">
                 {[
-                  { label: "Покупатель", value: "user" },
+                  { label: "Клиент", value: "user" },
                   { label: "Админ", value: "admin" },
                 ].map((r) => (
                   <input

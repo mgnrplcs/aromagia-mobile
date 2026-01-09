@@ -158,6 +158,15 @@ export const couponApi = {
     );
     return data;
   },
+  // Обновить купон
+  update: async ({ id, formData }, token) => {
+    const { data } = await axiosInstance.put(
+      `/admin/coupons/${id}`,
+      formData,
+      getHeaders(token)
+    );
+    return data;
+  },
   // Удалить купон
   delete: async (id, token) => {
     const { data } = await axiosInstance.delete(

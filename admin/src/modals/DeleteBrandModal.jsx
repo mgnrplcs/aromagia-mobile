@@ -55,7 +55,7 @@ export default function DeleteBrandModal({
 
           <div className="mt-5 flex items-start gap-2.5 text-xs font-medium text-warning bg-warning/10 px-3 py-2 rounded-lg text-left w-full">
             <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>Это действие нельзя отменить</span>
+            <span>Это действие нельзя будет отменить</span>
           </div>
         </div>
 

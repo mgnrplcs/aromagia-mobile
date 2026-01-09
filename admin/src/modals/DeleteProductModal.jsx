@@ -71,7 +71,7 @@ export default function DeleteProductModal({
           {/* Предупреждение */}
           <div className="mt-3.5 flex items-start gap-2.5 text-xs text-warning bg-warning/10 p-3 rounded-lg text-left w-full">
             <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>Это действие нельзя отменить</span>
+            <span>Это действие нельзя будет отменить</span>
           </div>
         </div>
 

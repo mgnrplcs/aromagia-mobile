@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { Link, useLocation } from "react-router";
-import { NAVIGATION } from "./Navbar";
+import { MENU_GROUPS } from "./Navbar";
 import Logo from "../assets/images/icons/aromagia-sm.png";
 import { Sparkles, Settings, LogOut } from "lucide-react";
 
@@ -10,11 +10,9 @@ function Sidebar() {
   const { user } = useUser();
   const { openUserProfile, signOut } = useClerk();
 
-  // Состояние для кастомного меню
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
-  // Закрытие меню при клике вне
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -55,7 +53,7 @@ function Sidebar() {
         </div>
 
         {/* Шапка */}
-        <div className="relative z-10 flex h-20 w-full items-center overflow-hiddenm">
+        <div className="relative z-10 flex h-20 w-full items-center overflow-hidden">
           <div className="flex w-18 shrink-0 items-center justify-center">
             <div className="flex text-2xl size-10 items-center justify-center rounded-xl bg-primary/10 text-primary p-1.5">
               <Sparkles className="w-6 h-6 fill-current" />
@@ -73,39 +71,56 @@ function Sidebar() {
           </span>
         </div>
 
-        {/* Навигация */}
-        <ul className="relative z-10 menu w-full grow gap-1.5 px-3">
-          {NAVIGATION.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <li key={item.path}>
-                <Link to={item.path} className={getTabStyle(isActive)}>
-                  <span
-                    className={`shrink-0 flex justify-center w-12 transition-transform duration-300 ${
-                      isActive ? "scale-110" : ""
-                    }`}
-                  >
-                    {item.icon}
-                  </span>
+        {/* --- Навигация --- */}
+        <ul className="relative z-10 menu w-full grow px-3 pb-4">
+          {MENU_GROUPS.map((group, index) => (
+            <div key={group.key} className="flex flex-col">
+              {index > 0 && (
+                <div className="my-2">
+                  <div className="divider my-1 h-px opacity-50"></div>
+                  {group.label && (
+                    <span className="px-2 text-[10px] font-bold uppercase tracking-wider text-base-content/40 is-drawer-close:hidden block mb-1">
+                      {group.label}
+                    </span>
+                  )}
+                </div>
+              )}
 
-                  <span className="whitespace-nowrap text-sm font-medium is-drawer-close:hidden">
-                    {item.name}
-                  </span>
+              {/* Элементы группы */}
+              <div className="flex flex-col gap-1.5">
+                {group.items.map((item) => {
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <li key={item.path}>
+                      <Link to={item.path} className={getTabStyle(isActive)}>
+                        <span
+                          className={`shrink-0 flex justify-center w-12 transition-transform duration-300 ${
+                            isActive ? "scale-110" : ""
+                          }`}
+                        >
+                          {item.icon}
+                        </span>
 
-                  {/* Тултип */}
-                  <div className="fixed left-16 px-3 py-2 bg-neutral text-neutral-content text-xs font-medium tracking-wider rounded-md opacity-0 group-hover:opacity-100 transition-all duration-200 -translate-x-2.5 group-hover:translate-x-0 pointer-events-none z-100 whitespace-nowrap hidden is-drawer-close:group-hover:block shadow-lg">
-                    {item.name}
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
+                        <span className="whitespace-nowrap text-sm font-medium is-drawer-close:hidden">
+                          {item.name}
+                        </span>
+
+                        <div className="fixed left-16 px-3 py-2 bg-neutral text-neutral-content text-xs font-medium tracking-wider rounded-md opacity-0 group-hover:opacity-100 transition-all duration-200 -translate-x-2.5 group-hover:translate-x-0 pointer-events-none z-100 whitespace-nowrap hidden is-drawer-close:group-hover:block shadow-lg">
+                          {item.name}
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </ul>
 
         {/* --- Профиль пользователя --- */}
         <div
           ref={menuRef}
-          className="relative z-20 w-full border-t border-base-200 p-3 mt-auto"
+          className="relative z-20 w-full border-t border-base-200 p-3 mt-auto bg-base-100"
         >
           {/* Всплывающее меню */}
           <div
@@ -146,7 +161,6 @@ function Sidebar() {
             </div>
           </div>
 
-          {/* Карточка юзера (Кнопка) */}
           <div
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className={`

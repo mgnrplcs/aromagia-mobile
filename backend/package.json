@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "seed:products": "node src/seeds/index.js",
+    "seed:products": "node src/seeds/products.js",
+    "seed:coupons": "node src/seeds/coupons.js",
     "stripe": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
   },
   "keywords": [],

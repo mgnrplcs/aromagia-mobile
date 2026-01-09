@@ -4,8 +4,29 @@ export const capitalizeText = (text) => {
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
+// Цвет статуса заказа
 export const getOrderStatusColor = (status) => {
-  return "text-primary";
+  switch (status) {
+    case "Доставлен":
+      return "text-primary";
+    case "Отменен":
+      return "text-secondary";
+    default:
+      return "text-base-content";
+  }
+};
+
+// Цвет статуса возврата
+export const getReturnStatusColor = (status) => {
+  switch (status) {
+    case "Одобрено":
+    case "Возврат выполнен":
+      return "text-primary";
+    case "Отклонено":
+      return "text-error";
+    default:
+      return "text-base-content";
+  }
 };
 
 export const getOrderStatusBadge = (status) => {
