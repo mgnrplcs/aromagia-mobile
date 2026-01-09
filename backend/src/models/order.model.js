@@ -43,7 +43,7 @@ const shippingAddressSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  state: {
+  region: {
     type: String,
     required: true,
   },
@@ -67,7 +67,7 @@ const orderSchema = new mongoose.Schema(
     clerkId: {
       type: String,
       required: true,
-      unique: true,
+      index: true,
     },
     orderItems: [OrderItemSchema],
     shippingAddress: {
@@ -77,6 +77,7 @@ const orderSchema = new mongoose.Schema(
     paymentResult: {
       id: String,
       status: String,
+      email: String,
     },
     discountAmount: {
       type: Number,
@@ -92,7 +93,7 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["В ожидании", "Отправлен", "Доставлен"],
+      enum: ["В ожидании", "Оплачен", "Отправлен", "Доставлен", "Отменен"],
       default: "В ожидании",
     },
     deliveredAt: {

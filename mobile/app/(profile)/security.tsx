@@ -1,10 +1,79 @@
 import SafeScreen from '@/components/SafeScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
+import {
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+  Animated,
+  Pressable,
+  Easing,
+} from 'react-native';
 
-// Добавил поле color в тип
+// === 1. КРАСИВЫЙ СВИТЧ (Встроенный компонент) ===
+interface BeautifulSwitchProps {
+  value: boolean;
+  onValueChange: (value: boolean) => void;
+}
+
+const BeautifulSwitch = ({ value, onValueChange }: BeautifulSwitchProps) => {
+  const animatedValue = useRef(new Animated.Value(value ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(animatedValue, {
+      toValue: value ? 1 : 0,
+      duration: 250,
+      easing: Easing.inOut(Easing.ease),
+      useNativeDriver: false,
+    }).start();
+  }, [value]);
+
+  // Интерполяция цвета фона
+  const backgroundColor = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#E5E7EB', '#3B82F6'], // Серый -> Синий
+  });
+
+  // Интерполяция позиции кружка
+  const translateX = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2, 26],
+  });
+
+  return (
+    <Pressable onPress={() => onValueChange(!value)}>
+      <Animated.View
+        style={{
+          width: 50,
+          height: 25,
+          borderRadius: 15,
+          backgroundColor,
+          justifyContent: 'center',
+        }}
+      >
+        <Animated.View
+          style={{
+            width: 21,
+            height: 21,
+            borderRadius: 13,
+            backgroundColor: 'white',
+            transform: [{ translateX }],
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 2.5,
+            elevation: 4,
+          }}
+        />
+      </Animated.View>
+    </Pressable>
+  );
+};
+
+// === 2. ОСНОВНОЙ ЭКРАН ===
+
 type SecurityOption = {
   id: string;
   icon: string;
@@ -166,11 +235,9 @@ function PrivacyAndSecurityScreen() {
 
         {/* Действие */}
         {isToggle ? (
-          <Switch
-            value={(item as SecurityOption).value}
+          <BeautifulSwitch
+            value={(item as SecurityOption).value ?? false}
             onValueChange={(value) => handleToggle(item.id, value)}
-            trackColor={{ false: '#E5E7EB', true: '#3B82F6' }}
-            thumbColor={'#FFFFFF'}
           />
         ) : (
           <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />

@@ -74,7 +74,7 @@ function AddressesScreen() {
   };
 
   const handleDeletePress = (address: Address) => {
-    setAddressToDelete(address); // Открывает модалку
+    setAddressToDelete(address);
   };
 
   const confirmDelete = () => {
@@ -82,7 +82,7 @@ function AddressesScreen() {
 
     deleteAddress(addressToDelete._id, {
       onSuccess: () => {
-        setAddressToDelete(null); // Закрываем
+        setAddressToDelete(null);
         toast.success('Адрес удален');
       },
       onError: () => toast.error('Ошибка удаления'),
@@ -150,7 +150,7 @@ function AddressesScreen() {
 
   return (
     <SafeScreen>
-      {/* --- ШАПКА --- */}
+      {/* --- Шапка --- */}
       <View className="px-6 pt-6 pb-4 bg-white flex-row items-center justify-between border-b border-gray-50">
         <TouchableOpacity
           onPress={() => router.back()}
@@ -168,7 +168,7 @@ function AddressesScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* --- СПИСОК --- */}
+      {/* --- Список --- */}
       <ScrollView
         className="flex-1 bg-background-subtle"
         showsVerticalScrollIndicator={false}
@@ -203,7 +203,6 @@ function AddressesScreen() {
                 key={address._id}
                 address={address}
                 onEdit={handleEditAddress}
-                // ВАЖНО: Тут вызываем handleDeletePress, чтобы открыть модалку
                 onDelete={() => handleDeletePress(address)}
                 isUpdatingAddress={isUpdatingAddress}
                 isDeletingAddress={isDeletingAddress}

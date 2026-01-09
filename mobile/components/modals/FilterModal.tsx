@@ -11,7 +11,6 @@ import {
   PanResponder,
   Dimensions,
   Keyboard,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -169,7 +168,7 @@ export default function FilterModal({
         <Animated.View
           className="bg-white w-full overflow-hidden "
           style={{
-            height: '75%',
+            height: '64%',
             paddingBottom: insets.bottom,
             transform: [{ translateY: panY }],
           }}
@@ -180,9 +179,7 @@ export default function FilterModal({
             </View>
 
             <View className="px-6 mt-4 pb-1 flex-row items-center justify-between">
-              <Text className="text-[#111827] text-2xl font-raleway-bold tracking-tight">
-                Фильтры
-              </Text>
+              <Text className="text-black text-2xl font-raleway-bold tracking-tight">Фильтры</Text>
               <TouchableOpacity
                 onPress={closeModalAnimated}
                 className="bg-gray-100 p-2 rounded-full active:bg-gray-200"
@@ -195,10 +192,8 @@ export default function FilterModal({
 
           <ScrollView className="px-6 pt-5" showsVerticalScrollIndicator={false}>
             {/* 1. СОРТИРОВКА */}
-            <View className="mb-6">
-              <Text className="text-[#111827] font-inter-semibold text-[15px] mb-3.5">
-                Сортировка
-              </Text>
+            <View className="mb-5">
+              <Text className="text-black font-inter-semibold text-[15px] mb-3">Сортировка</Text>
               <View className="flex-row flex-wrap gap-2.5">
                 <SortChip
                   label="Популярное"
@@ -224,9 +219,9 @@ export default function FilterModal({
             </View>
 
             {/* 2. ЦЕНА */}
-            <View className="mb-6">
+            <View className="mb-5">
               <View className="flex-row justify-between items-end mb-1">
-                <Text className="text-[#111827] font-inter-semibold text-[15px]">Цена, ₽</Text>
+                <Text className="text-black font-inter-semibold text-[15px]">Цена, ₽</Text>
               </View>
 
               <View className="px-2 mb-3">
@@ -237,11 +232,11 @@ export default function FilterModal({
                   step={100}
                   value={safeSliderValues}
                   onValueChange={handleSliderChange}
-                  minimumTrackTintColor="#111827"
-                  maximumTrackTintColor="#F3F4F6"
+                  minimumTrackTintColor="#000000"
+                  maximumTrackTintColor="#000000"
                   thumbTintColor="#FFFFFF"
                   thumbStyle={styles.thumbStyle}
-                  trackStyle={{ height: 6, borderRadius: 3 }}
+                  trackStyle={{ height: 7, borderRadius: 3 }}
                 />
               </View>
 
@@ -265,7 +260,7 @@ export default function FilterModal({
 
             {/* 3. ПОЛ */}
             <View>
-              <Text className="text-[#111827] font-inter-semibold text-[15px] mb-2.5">Пол</Text>
+              <Text className="text-black font-inter-semibold text-[15px] mb-2.5">Пол</Text>
               <View className="flex-row gap-2.5 flex-wrap">
                 <SortChip
                   label="Все"
@@ -296,11 +291,9 @@ export default function FilterModal({
             <TouchableOpacity
               onPress={handleReset}
               activeOpacity={0.7}
-              className="w-full bg-white border border-gray-200 py-4 rounded-2xl flex-row items-center justify-center shadow-sm shadow-gray-100"
+              className="w-full bg-white border border-gray-200 py-3 rounded-2xl flex-row items-center justify-center shadow-sm shadow-gray-100"
             >
-              <Text className="text-[#111827] font-inter-semibold text-[15px]">
-                Сбросить фильтры
-              </Text>
+              <Text className="text-black font-inter-semibold text-[15px]">Сбросить фильтры</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -324,9 +317,9 @@ function PriceInput({
     <View className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 h-12 flex-row items-center">
       <Text className="text-gray-400 mr-1.5 text-sm font-inter-medium pt-0.5">{label}</Text>
       <TextInput
-        className="flex-1 font-inter-medium text-[#111827] text-[15px] p-0 m-0 leading-5 h-full"
+        className="flex-1 font-inter-medium text-black text-[15px] p-0 m-0 leading-5 h-full"
         placeholder={formatNumber(placeholder)}
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor="#000000"
         keyboardType="numeric"
         value={formatNumber(value)}
         onChangeText={(text) => onChangeText(unformatNumber(text))}
@@ -348,13 +341,13 @@ function SortChip({
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`px-5 py-3 rounded-xl border ${
-        active ? 'bg-[#111827] border-[#111827]' : 'bg-white border-gray-200'
+      className={`px-5 py-2.5 rounded-xl border ${
+        active ? 'bg-black border-black' : 'bg-white border-gray-200'
       }`}
     >
       <Text
-        className={`font-inter-semibold tracking-wide text-[13px] ${
-          active ? 'text-white' : 'text-[#6B7280]'
+        className={`font-inter-medium tracking-wide text-[13px] ${
+          active ? 'text-white' : 'text-gray-500'
         }`}
       >
         {label}

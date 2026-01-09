@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ShoppingBag,
   Search,
-  Filter,
   MapPin,
   Calendar,
   Package,
@@ -15,28 +14,20 @@ import { orderApi } from "../lib/api";
 import { formatDate, getDeclension } from "../lib/utils";
 import PageLoader from "../components/PageLoader";
 
-// Словарь статусов для отображения
-const STATUS_LABELS = {
-  pending: "В обработке",
-  shipped: "Отправлен",
-  delivered: "Доставлен",
-  cancelled: "Отменен",
-};
-
-// Словарь цветов для статусов (для селекта)
-const STATUS_COLORS = {
-  pending: "text-warning",
-  shipped: "text-info",
-  delivered: "text-success",
-  cancelled: "text-error",
-};
+const STATUS_OPTIONS = [
+  { value: "В ожидании", label: "В ожидании" },
+  { value: "Оплачен", label: "Оплачен" },
+  { value: "Отправлен", label: "Отправлен" },
+  { value: "Доставлен", label: "Доставлен" },
+  { value: "Отменен", label: "Отменен" },
+];
 
 function OrdersPage() {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
 
-  // 1. Загрузка заказов
+  // --- ЗАГРУЗКА ---
   const { data: ordersData, isLoading } = useQuery({
     queryKey: ["orders"],
     queryFn: async () => {
@@ -45,7 +36,7 @@ function OrdersPage() {
     },
   });
 
-  // 2. Мутация обновления статуса
+  // --- МУТАЦИЯ СТАТУСА ---
   const updateStatusMutation = useMutation({
     mutationFn: async ({ orderId, status }) => {
       const token = await getToken();
@@ -53,11 +44,11 @@ function OrdersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      // Если есть статистика на дашборде, обновляем её тоже
       queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
     },
     onError: (error) => {
-      alert("Ошибка обновления статуса: " + error.message);
+      const message = error.response?.data?.message || error.message;
+      alert(`Ошибка: ${message}`);
     },
   });
 
@@ -65,12 +56,13 @@ function OrdersPage() {
     updateStatusMutation.mutate({ orderId, status: newStatus });
   };
 
-  const orders = ordersData?.orders || [];
+  const orders =
+    ordersData?.orders || (Array.isArray(ordersData) ? ordersData : []) || [];
 
-  // 3. Фильтрация (поиск по ID, Имени клиента или Городу)
+  // --- ФИЛЬТР ---
   const filteredOrders = orders.filter((order) => {
     const searchLower = searchTerm.toLowerCase();
-    const orderId = order._id.slice(-6).toLowerCase();
+    const orderId = order._id ? order._id.slice(-6).toLowerCase() : "";
     const customerName = order.shippingAddress?.fullName?.toLowerCase() || "";
     const city = order.shippingAddress?.city?.toLowerCase() || "";
 
@@ -85,9 +77,8 @@ function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      {/* === Шапка === */}
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-base-100 p-4 rounded-xl shadow-sm">
-        {/* Заголовок */}
         <div className="flex items-center gap-4 w-full sm:w-auto">
           <div className="p-3 bg-primary/10 rounded-xl text-primary shrink-0">
             <ShoppingBag className="w-8 h-8" />
@@ -100,25 +91,21 @@ function OrdersPage() {
           </div>
         </div>
 
-        {/* Поиск и Фильтр */}
         <div className="flex gap-2 w-full sm:w-auto">
           <div className="relative w-full sm:w-64">
             <input
               type="text"
-              placeholder="Поиск заказа..."
+              placeholder="Поиск (ID, Имя, Город)..."
               className="input input-bordered w-full pl-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             <Search className="w-4 h-4 absolute left-3 top-3 text-base-content/50" />
           </div>
-          <button className="btn btn-square btn-ghost border border-base-200">
-            <Filter className="w-5 h-5 text-base-content" />
-          </button>
         </div>
       </div>
 
-      {/* === Таблица === */}
+      {/* TABLE */}
       <div className="card bg-base-100 shadow-sm border border-base-200">
         <div className="card-body p-0">
           {filteredOrders.length === 0 ? (
@@ -127,7 +114,6 @@ function OrdersPage() {
                 <ShoppingBag className="w-16 h-16 opacity-20" />
               </div>
               <p className="text-xl font-semibold mb-1">Заказы не найдены</p>
-              <p className="text-sm">Попробуйте изменить параметры поиска</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -136,7 +122,7 @@ function OrdersPage() {
                   <tr>
                     <th>Заказ</th>
                     <th>Клиент</th>
-                    <th>Состав заказа</th>
+                    <th>Товары</th>
                     <th>Сумма</th>
                     <th>Статус</th>
                     <th>Дата</th>
@@ -144,26 +130,32 @@ function OrdersPage() {
                 </thead>
                 <tbody>
                   {filteredOrders.map((order) => {
-                    // Подсчет общего кол-ва товаров
                     const totalQuantity = order.orderItems.reduce(
                       (sum, item) => sum + item.quantity,
                       0
                     );
+
+                    const isUpdating =
+                      updateStatusMutation.isPending &&
+                      updateStatusMutation.variables?.orderId === order._id;
 
                     return (
                       <tr
                         key={order._id}
                         className="hover:bg-base-50 transition-colors group"
                       >
-                        {/* 1. ID Заказа */}
+                        {/* 1. ID */}
                         <td>
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-base-200 flex items-center justify-center font-mono font-bold text-base-content/70 text-xs">
+                            <div className="w-12 h-12 rounded-xl bg-base-200 flex items-center justify-center font-mono font-bold text-base-content/70 text-xs shadow-sm">
                               #{order._id.slice(-4).toUpperCase()}
                             </div>
                             <div className="flex flex-col">
                               <span className="font-bold text-sm">
-                                ID: {order._id.slice(-8).toUpperCase()}
+                                {order._id.slice(0, 8)}...
+                              </span>
+                              <span className="text-xs text-base-content/50">
+                                ID
                               </span>
                             </div>
                           </div>
@@ -173,7 +165,7 @@ function OrdersPage() {
                         <td>
                           <div className="flex items-center gap-3">
                             <div className="avatar placeholder">
-                              <div className="bg-neutral text-neutral-content rounded-full w-8 h-8">
+                              <div className="bg-neutral/10 text-neutral rounded-full w-8 h-8">
                                 <span className="text-xs">
                                   <User className="w-4 h-4" />
                                 </span>
@@ -181,13 +173,12 @@ function OrdersPage() {
                             </div>
                             <div>
                               <div className="font-bold text-sm">
-                                {order.shippingAddress?.fullName ||
-                                  "Неизвестно"}
+                                {order.shippingAddress?.fullName || "Аноним"}
                               </div>
                               <div className="text-xs text-base-content/50 flex items-center gap-1 mt-0.5">
                                 <MapPin className="w-3 h-3" />
                                 {order.shippingAddress?.city},{" "}
-                                {order.shippingAddress?.state}
+                                {order.shippingAddress?.region}
                               </div>
                             </div>
                           </div>
@@ -217,11 +208,11 @@ function OrdersPage() {
                         <td>
                           <div className="flex items-center gap-2 font-bold text-base">
                             <CreditCard className="w-4 h-4 text-base-content/40" />
-                            {order.totalPrice.toLocaleString("ru-RU")} ₽
+                            {order.totalPrice?.toLocaleString("ru-RU")} ₽
                           </div>
                         </td>
 
-                        {/* 5. Статус (Select) */}
+                        {/* 5. Статус */}
                         <td>
                           <div className="relative">
                             <select
@@ -229,24 +220,21 @@ function OrdersPage() {
                               onChange={(e) =>
                                 handleStatusChange(order._id, e.target.value)
                               }
-                              disabled={updateStatusMutation.isPending}
-                              className={`select select-sm select-bordered w-36 font-medium focus:outline-none ${
-                                STATUS_COLORS[order.status] || ""
-                              }`}
+                              disabled={isUpdating}
+                              className="select select-sm select-bordered w-36 font-semibold text-primary tracking-wide focus:outline-none"
                             >
-                              <option value="pending">В обработке</option>
-                              <option value="shipped">Отправлен</option>
-                              <option value="delivered">Доставлен</option>
-                              <option value="cancelled">Отменен</option>
+                              {STATUS_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
                             </select>
-                            {/* Спиннер загрузки, если обновляется именно этот заказ */}
-                            {updateStatusMutation.isPending &&
-                              updateStatusMutation.variables?.orderId ===
-                                order._id && (
-                                <div className="absolute right-8 top-2">
-                                  <span className="loading loading-spinner loading-xs text-primary"></span>
-                                </div>
-                              )}
+                            {/* Спиннер */}
+                            {isUpdating && (
+                              <div className="absolute right-2 top-2">
+                                <span className="loading loading-spinner loading-xs text-primary"></span>
+                              </div>
+                            )}
                           </div>
                         </td>
 
@@ -254,7 +242,9 @@ function OrdersPage() {
                         <td>
                           <div className="flex items-center gap-2 text-sm text-base-content/70">
                             <Calendar className="w-4 h-4 text-base-content/40" />
-                            {formatDate(order.createdAt)}
+                            {order.createdAt
+                              ? formatDate(order.createdAt)
+                              : "-"}
                           </div>
                         </td>
                       </tr>

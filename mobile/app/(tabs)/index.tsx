@@ -111,11 +111,11 @@ const ShopScreen = () => {
       >
         <View className="px-6 pb-4 pt-6">
           {/* Шапка */}
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-[#111827] text-3xl font-raleway-bold">Каталог</Text>
+          <View className="flex-row items-center justify-between mb-3.5">
+            <Text className="text-black text-3xl font-raleway-bold">Каталог</Text>
             {itemsCount > 0 && (
               <View className="bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-                <Text className="text-primary text-sm font-inter-bold">
+                <Text className="text-primary text-sm tracking-wide font-inter-semibold">
                   {itemsCount} {getDeclension(itemsCount, ['товар', 'товара', 'товаров'])}
                 </Text>
               </View>
@@ -124,18 +124,18 @@ const ShopScreen = () => {
 
           {/* Поиск + Кнопка */}
           <View className="flex-row items-center">
-            <View className="flex-1 flex-row items-center px-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-200">
-              <Ionicons color={'#9CA3AF'} size={20} name="search" />
+            <View className="flex-1 flex-row items-center px-5 py-0.5 bg-gray-50 rounded-2xl border border-gray-200/80">
+              <Ionicons color={'#b3b6bb'} size={20} name="search" />
               <TextInput
                 placeholder="Найти товары..."
-                placeholderTextColor={'#9CA3AF'}
-                className="flex-1 ml-3 text-[15px] text-[#111827] font-inter leading-5"
+                placeholderTextColor={'#a3a5aa'}
+                className="flex-1 ml-3 pb-3 text-base text-black tracking-wide font-inter"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
             </View>
             <TouchableOpacity
-              className="ml-3 w-[46px] h-[46px] bg-gray-50 border border-gray-200 rounded-2xl items-center justify-center active:bg-gray-100"
+              className="ml-3 w-[46px] h-[46px] bg-gray-50 border border-gray-200/80 rounded-2xl items-center justify-center active:bg-gray-100"
               onPress={() => setIsFilterVisible(true)}
               activeOpacity={0.7}
             >
@@ -158,10 +158,10 @@ const ShopScreen = () => {
                   key={category.name}
                   onPress={() => setSelectedCategory(category.name)}
                   activeOpacity={0.8}
-                  className={`px-5 py-2.5 rounded-full border transition-all ${isSelected ? 'bg-[#111827] border-[#111827]' : 'bg-white border-gray-200'}`}
+                  className={`px-5 py-2.5 rounded-full border transition-all ${isSelected ? 'bg-black border-black' : 'bg-white border-gray-200'}`}
                 >
                   <Text
-                    className={`font-inter-semibold tracking-wide text-[13px] ${isSelected ? 'text-white' : 'text-[#6B7280]'}`}
+                    className={`font-inter-medium tracking-wide text-[13px] ${isSelected ? 'text-white' : 'text-gray-500'}`}
                   >
                     {category.label}
                   </Text>
@@ -181,29 +181,24 @@ const ShopScreen = () => {
         </View>
       </ScrollView>
 
-      {/* --- ИСПРАВЛЕННЫЙ ВЫЗОВ МОДАЛКИ --- */}
+      {/* --- Модалка --- */}
       <FilterModal
         visible={isFilterVisible}
         onClose={() => setIsFilterVisible(false)}
-        // Значения
         currentSort={sortOption}
         minPrice={minPrice}
         maxPrice={maxPrice}
-        // Передаем пол, только если он совпадает с валидными значениями, иначе All
         currentGender={
           ['Male', 'Female', 'Unisex'].includes(selectedCategory)
             ? (selectedCategory as GenderOption)
             : 'All'
         }
-        // Динамические границы цен
         absoluteMinPrice={priceRange.min}
         absoluteMaxPrice={priceRange.max}
-        // Функции изменения (мгновенные)
         setSort={setSortOption}
         setMinPrice={setMinPrice}
         setMaxPrice={setMaxPrice}
         setGender={(gender) => {
-          // Если в модалке нажали "Все", ставим категорию "All". Иначе конкретный пол.
           setSelectedCategory(gender === 'All' ? 'All' : gender);
         }}
       />

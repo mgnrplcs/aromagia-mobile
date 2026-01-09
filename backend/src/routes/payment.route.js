@@ -1,9 +1,6 @@
 import { Router } from "express";
 
-import {
-  createPaymentIntent,
-  handleWebhook,
-} from "../controllers/payment.controller.js";
+import { createPaymentIntent } from "../controllers/payment.controller.js";
 
 import { protectRoute } from "../middleware/auth.middleware.js";
 

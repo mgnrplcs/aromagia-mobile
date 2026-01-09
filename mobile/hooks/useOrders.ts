@@ -6,13 +6,18 @@ import { Order } from '@/types';
 export const useOrders = () => {
   const api = useApi();
 
-  return useQuery<Order[]>({
+  const query = useQuery<Order[]>({
     queryKey: ['orders'],
     queryFn: async () => {
       const { data } = await api.get('/orders');
       return data.orders || data;
     },
   });
+
+  return {
+    ...query,
+    refetch: query.refetch,
+  };
 };
 
 // Детали заказа

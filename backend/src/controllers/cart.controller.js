@@ -10,12 +10,13 @@ export async function getCart(req, res) {
     let cart = await Cart.findOne({ user: user._id }).populate({
       path: "items.product",
       select: "name price images category brand volume",
+      populate: { path: "brand", select: "name" },
     });
     // 2. Если корзины нет — создаем
     if (!cart) {
       cart = await Cart.create({
         user: user._id,
-        clerkId: user.clerkId, // <--- ИСПРАВЛЕНО: Добавлено обязательное поле
+        clerkId: user.clerkId,
         items: [],
       });
     }
@@ -51,7 +52,7 @@ export async function addToCart(req, res) {
     if (!cart) {
       cart = await Cart.create({
         user: user._id,
-        clerkId: user.clerkId, // <--- ИСПРАВЛЕНО: Добавлено обязательное поле
+        clerkId: user.clerkId,
         items: [],
       });
     }
@@ -80,6 +81,7 @@ export async function addToCart(req, res) {
     await cart.populate({
       path: "items.product",
       select: "name price images category brand volume",
+      populate: { path: "brand", select: "name" },
     });
 
     res.status(200).json({ message: "Товар добавлен в корзину", cart });
@@ -138,6 +140,7 @@ export async function updateQuantity(req, res) {
     await cart.populate({
       path: "items.product",
       select: "name price images category brand volume",
+      populate: { path: "brand", select: "name" },
     });
 
     res.status(200).json({ message: "Количество обновлено", cart });
@@ -170,6 +173,7 @@ export async function removeFromCart(req, res) {
     await cart.populate({
       path: "items.product",
       select: "name price images category brand volume",
+      populate: { path: "brand", select: "name" },
     });
 
     res.status(200).json({ message: "Товар удалён из корзины", cart });

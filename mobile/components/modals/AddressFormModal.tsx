@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Switch,
   ActivityIndicator,
   Animated,
   PanResponder,
@@ -15,10 +14,92 @@ import {
   KeyboardAvoidingView,
   Platform,
   KeyboardTypeOptions,
+  Pressable,
+  StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatPhoneNumber } from '@/lib/utils';
+
+// === Импорты для Reanimated (Custom Switch) ===
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  interpolateColor,
+  useDerivedValue,
+  withTiming,
+} from 'react-native-reanimated';
+
+// === 1. КОМПОНЕНТ CUSTOM SWITCH ===
+interface CustomSwitchProps {
+  value: boolean;
+  onValueChange: (value: boolean) => void;
+  activeColor?: string;
+  inActiveColor?: string;
+}
+
+const CustomSwitch = ({
+  value,
+  onValueChange,
+  activeColor = '#3B82F6',
+  inActiveColor = '#E5E7EB',
+}: CustomSwitchProps) => {
+  const switchTranslate = useSharedValue(0);
+  const progress = useDerivedValue(() => {
+    return withTiming(value ? 1 : 0);
+  });
+
+  useEffect(() => {
+    if (value) {
+      switchTranslate.value = withSpring(21, { mass: 1, damping: 15, stiffness: 120 });
+    } else {
+      switchTranslate.value = withSpring(0, { mass: 1, damping: 15, stiffness: 120 });
+    }
+  }, [value]);
+
+  const animatedTrackStyle = useAnimatedStyle(() => {
+    const backgroundColor = interpolateColor(progress.value, [0, 1], [inActiveColor, activeColor]);
+    return { backgroundColor };
+  });
+
+  const animatedThumbStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: switchTranslate.value }],
+    };
+  });
+
+  return (
+    <Pressable onPress={() => onValueChange(!value)} style={{ alignSelf: 'center' }}>
+      <Reanimated.View style={[switchStyles.track, animatedTrackStyle]}>
+        <Reanimated.View style={[switchStyles.thumb, animatedThumbStyle]} />
+      </Reanimated.View>
+    </Pressable>
+  );
+};
+
+const switchStyles = StyleSheet.create({
+  track: {
+    width: 50,
+    height: 28,
+    borderRadius: 30,
+    padding: 3,
+    justifyContent: 'center',
+  },
+  thumb: {
+    width: 22,
+    height: 22,
+    borderRadius: 20,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2.5,
+    elevation: 4,
+  },
+});
+
+// === ОСНОВНОЙ КОД ===
 
 interface AddressFormData {
   label: string;
@@ -64,10 +145,9 @@ const InputField = ({
   letterSpacing = 0,
 }: InputFieldProps) => (
   <View className="mb-4">
-    <Text className="text-[#111827] font-inter-semibold mb-1.5 text-[14px]">{label}</Text>
+    <Text className="text-black font-inter-medium tracking-wide mb-1.5 text-[14px]">{label}</Text>
     <TextInput
-      // ИСПРАВЛЕНО: text-[#111827] вместо text-gray-400
-      className="bg-gray-50 border border-gray-200 text-[#111827] rounded-xl h-12 px-4 text-[15px]"
+      className="bg-gray-50 border border-gray-200 text-black rounded-xl h-12 px-4 text-[15px]"
       style={{ textAlignVertical: 'center', letterSpacing }}
       placeholder={placeholder}
       placeholderTextColor="#9CA3AF"
@@ -183,7 +263,7 @@ const AddressFormModal = ({
             </View>
 
             <View className="px-6 pb-2 flex-row items-center justify-between">
-              <Text className="text-[#111827] text-2xl font-raleway-bold tracking-tight">
+              <Text className="text-black text-2xl font-raleway-bold tracking-tight">
                 {isEditing ? 'Редактировать' : 'Новый адрес'}
               </Text>
               <TouchableOpacity
@@ -204,9 +284,7 @@ const AddressFormModal = ({
           >
             {/* МЕТКА */}
             <View className="mb-5">
-              <Text className="text-[#111827] font-inter-semibold mb-3 text-[14px]">
-                Тип адреса
-              </Text>
+              <Text className="text-black font-inter-semibold mb-3 text-[14px]">Тип адреса</Text>
               <View className="flex-row gap-2.5 flex-wrap">
                 {labels.map((tag) => {
                   const isSelected = addressForm.label === tag;
@@ -214,14 +292,14 @@ const AddressFormModal = ({
                     <TouchableOpacity
                       key={tag}
                       onPress={() => onFormChange({ ...addressForm, label: tag })}
-                      className={`px-5 py-3 rounded-xl border ${
-                        isSelected ? 'bg-[#111827] border-[#111827]' : 'bg-white border-gray-200'
+                      className={`px-5 py-2 rounded-xl border ${
+                        isSelected ? 'bg-black border-black' : 'bg-white border-gray-200'
                       }`}
                       activeOpacity={0.7}
                     >
                       <Text
-                        className={`font-inter-semibold tracking-wide text-[13px] ${
-                          isSelected ? 'text-white' : 'text-[#6B7280]'
+                        className={`font-inter-medium tracking-wide text-base ${
+                          isSelected ? 'text-white' : 'text-gray-500'
                         }`}
                       >
                         {tag}
@@ -278,7 +356,6 @@ const AddressFormModal = ({
                   onChangeText={(text) => onFormChange({ ...addressForm, zipCode: text })}
                   keyboardType="number-pad"
                   maxLength={6}
-                  // ИСПРАВЛЕНО: Убран letterSpacing
                 />
               </View>
             </View>
@@ -293,26 +370,23 @@ const AddressFormModal = ({
             <View className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex-row items-center justify-between mb-6 mt-2">
               <View className="flex-row items-center gap-4 flex-1">
                 <View className="w-14 h-14 bg-white rounded-xl items-center justify-center border border-gray-200">
-                  <Ionicons name="cart" size={24} color="#111827" />
+                  <Ionicons name="cart" size={24} color="#000000" />
                 </View>
 
                 <View className="flex-1">
-                  <Text className="text-[#111827] font-inter-semibold text-lg leading-6">
+                  <Text className="text-black font-inter-semibold text-lg leading-6">
                     Основной адрес
                   </Text>
-                  <Text className="text-gray-400 text-base leading-5 mt-0.5">
+                  <Text className="text-gray-500 text-base font-inter-light tracking-wide">
                     Использовать в корзине
                   </Text>
                 </View>
               </View>
 
-              <Switch
-                style={{ alignSelf: 'center' }}
+              {/* === ЗАМЕНИЛ SWITCH НА CUSTOMSWITCH === */}
+              <CustomSwitch
                 value={addressForm.isDefault}
                 onValueChange={(value) => onFormChange({ ...addressForm, isDefault: value })}
-                trackColor={{ false: '#E5E7EB', true: '#3B82F6' }}
-                thumbColor={'#FFFFFF'}
-                ios_backgroundColor="#E5E7EB"
               />
             </View>
 

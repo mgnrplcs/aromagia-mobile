@@ -5,6 +5,7 @@ interface CreateReviewData {
   productId: string;
   orderId: string;
   rating: number;
+  comment?: string;
 }
 
 export const useReviews = () => {
@@ -17,6 +18,7 @@ export const useReviews = () => {
       return response.data;
     },
     onSuccess: () => {
+      // Обновляем кэш отзывов и заказов (чтобы обновился статус hasReviewed)
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
     },

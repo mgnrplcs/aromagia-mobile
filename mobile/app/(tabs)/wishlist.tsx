@@ -21,16 +21,175 @@ import ErrorState from '@/components/ErrorState';
 import PageLoader from '@/components/PageLoader';
 import DeleteProductModal from '@/components/modals/DeleteFromWishlistModal';
 
+// --- КОМПОНЕНТ ЭЛЕМЕНТА ВИШЛИСТА (чтобы хуки работали) ---
+const WishlistItem = ({ item, onDelete }: { item: Product; onDelete: (item: Product) => void }) => {
+  const { cart, addToCart, updateQuantity, removeFromCart, isUpdating, isRemoving } = useCart();
+
+  // Ищем товар в корзине
+  const cartItem = cart?.items.find(
+    (cartItem) =>
+      (typeof cartItem.product === 'string' ? cartItem.product : cartItem.product._id) === item._id
+  );
+  const quantityInCart = cartItem ? cartItem.quantity : 0;
+
+  const handleIncrease = () => {
+    updateQuantity({ productId: item._id, quantity: quantityInCart + 1 });
+  };
+
+  const handleDecrease = () => {
+    if (quantityInCart === 1) removeFromCart(item._id);
+    else updateQuantity({ productId: item._id, quantity: quantityInCart - 1 });
+  };
+
+  // Хелпер бренда
+  const getBrandName = (product: Product) => {
+    if (product.brand && typeof product.brand === 'object' && 'name' in product.brand) {
+      return (product.brand as Brand).name;
+    }
+    return 'Бренд';
+  };
+
+  const brandName = getBrandName(item);
+  const inStock = item.stock > 0;
+
+  return (
+    <TouchableOpacity
+      className="bg-white rounded-3xl p-4 border border-gray-200 flex-row items-start mb-4"
+      activeOpacity={0.9}
+      onPress={() => router.push(`/product/${item._id}` as any)}
+    >
+      {item.isBestseller && (
+        <View className="absolute top-3 left-3.5 z-10 bg-red-400 px-2.5 py-1.5 rounded-full flex-row items-center shadow-sm">
+          <Ionicons name="flash" size={11} color="#FFFFFF" style={{ marginRight: 2.5 }} />
+          <Text className="text-white text-xs font-inter-extrabold tracking-wider uppercase">
+            Хит
+          </Text>
+        </View>
+      )}
+
+      <Image
+        source={item.images[0]}
+        style={{ width: 110, height: 110, borderRadius: 16 }}
+        contentFit="cover"
+        className="bg-gray-50 border border-gray-100"
+      />
+
+      <View className="flex-1 ml-4 py-1">
+        {/* Хедер карточки */}
+        <View className="flex-row justify-between items-start">
+          <Text className="text-black text-sm font-raleway-bold uppercase tracking-widest mt-1">
+            {brandName}
+          </Text>
+
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              onDelete(item);
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            className="bg-gray-50 p-1.5 rounded-full"
+          >
+            <Ionicons name="close" size={18} color="#9CA3AF" />
+          </TouchableOpacity>
+        </View>
+
+        <Text
+          className="text-black font-raleway-medium tracking-wide text-lg mb-1 -mt-2"
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {item.name}
+        </Text>
+
+        <View className="mb-2.5">
+          <Text className="text-black font-inter-bold text-xl">{formatPrice(item.price)}</Text>
+          {!inStock && (
+            <Text className="text-red-500 text-xs mt-1 font-inter-medium">Нет в наличии</Text>
+          )}
+        </View>
+
+        {/* Кнопка добавления в корзину */}
+        {inStock && (
+          <View>
+            {!cartItem ? (
+              <TouchableOpacity
+                className="bg-black py-2.5 rounded-xl flex-row items-center justify-center active:bg-gray-800 shadow-sm"
+                onPress={(e) => {
+                  e.stopPropagation();
+                  addToCart({ productId: item._id, quantity: 1 });
+                }}
+                disabled={isUpdating}
+              >
+                <Ionicons name="bag-handle" size={18} color="#fff" style={{ marginRight: 6 }} />
+                <Text className="text-white font-inter-bold tracking-wide text-[13px]">
+                  В корзину
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              // Кнопка со счетчиком
+              <View className="flex-row h-[40px] shadow-sm rounded-xl overflow-hidden border border-gray-200 bg-white">
+                {/* Левая часть: Перейти в корзину */}
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    router.push('/(tabs)/cart');
+                  }}
+                  className="bg-blue-500 w-11 items-center justify-center h-full active:bg-blue-600"
+                >
+                  <Ionicons name="bag-check" size={18} color="white" />
+                </TouchableOpacity>
+
+                {/* Правая часть: Счетчик */}
+                <View className="flex-1 flex-row items-center justify-between px-3 bg-white h-full border-l border-gray-100">
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDecrease();
+                    }}
+                    disabled={isUpdating || isRemoving}
+                    className="w-7 h-7 bg-gray-50 rounded-full items-center justify-center active:bg-gray-100 border border-gray-100"
+                  >
+                    {isRemoving ? (
+                      <ActivityIndicator size="small" color="#111827" />
+                    ) : (
+                      <Ionicons name="remove" size={16} color="#111827" />
+                    )}
+                  </TouchableOpacity>
+
+                  <Text className="text-[#111827] font-inter-bold text-[15px] mx-2 min-w-[20px] text-center">
+                    {isUpdating ? (
+                      <ActivityIndicator size="small" color="#111827" />
+                    ) : (
+                      quantityInCart
+                    )}
+                  </Text>
+
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleIncrease();
+                    }}
+                    disabled={isUpdating || quantityInCart >= item.stock}
+                    className="w-7 h-7 bg-gray-50 rounded-full items-center justify-center active:bg-gray-100 border border-gray-100"
+                  >
+                    <Ionicons name="add" size={16} color="#111827" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// --- ГЛАВНЫЙ ЭКРАН ---
 function WishlistScreen() {
-  const { wishlist, isLoading, isError, removeFromWishlist, isRemovingFromWishlist, refetch } =
-    useWishlist();
+  const { wishlist, isLoading, isError, removeFromWishlist, refetch } = useWishlist();
 
-  const { addToCart, isAddingToCart } = useCart();
-
-  const [optimisticWishlist, setOptimisticWishlist] = useState(wishlist);
+  const [optimisticWishlist, setOptimisticWishlist] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-
-  // Состояние для модалки
   const [itemToDelete, setItemToDelete] = useState<Product | null>(null);
 
   const onRefresh = useCallback(async () => {
@@ -41,7 +200,7 @@ function WishlistScreen() {
 
   useEffect(() => {
     if (wishlist) {
-      setOptimisticWishlist(wishlist);
+      setOptimisticWishlist(wishlist as Product[]);
     }
   }, [wishlist]);
 
@@ -61,27 +220,6 @@ function WishlistScreen() {
     });
   };
 
-  const handleAddToCart = (productId: string, productName: string) => {
-    addToCart(
-      { productId, quantity: 1 },
-      {
-        onError: (error: any) => {
-          toast.error('Ошибка', {
-            description: error?.response?.data?.error || 'Не удалось добавить',
-          });
-        },
-      }
-    );
-  };
-
-  // Хелпер для получения имени бренда в модалке и списке
-  const getBrandName = (item: Product) => {
-    if (item.brand && typeof item.brand === 'object' && 'name' in item.brand) {
-      return (item.brand as Brand).name;
-    }
-    return 'Бренд';
-  };
-
   if (isLoading) return <PageLoader />;
 
   if (isError) {
@@ -96,20 +234,17 @@ function WishlistScreen() {
 
   return (
     <SafeScreen>
-      {/* --- ШАПКА --- */}
       <View className="px-6 pt-6 pb-4 bg-white flex-row items-center justify-between border-b border-gray-50">
         <Text className="text-[#111827] text-3xl font-raleway-bold tracking-tight">Избранное</Text>
-
         {itemsCount > 0 && (
           <View className="bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-            <Text className="text-primary text-sm font-inter-bold">
+            <Text className="text-primary text-sm font-inter-semibold tracking-wide">
               {itemsCount} {getDeclension(itemsCount, ['товар', 'товара', 'товаров'])}
             </Text>
           </View>
         )}
       </View>
 
-      {/* --- КОНТЕНТ --- */}
       <ScrollView
         className="flex-1 bg-background-subtle"
         showsVerticalScrollIndicator={false}
@@ -118,9 +253,8 @@ function WishlistScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#87e4ab']}
-            tintColor="#87e4ab"
-            progressViewOffset={25}
+            colors={['#111827']}
+            tintColor="#111827"
           />
         }
       >
@@ -133,115 +267,21 @@ function WishlistScreen() {
               Ваш список пуст
             </Text>
             <Text className="text-[#6B7280] text-center mt-2.5 font-inter-light leading-7 px-8 text-[15px]">
-              Чтобы не потерять понравившийся товар, добавьте его в избранное
+              Добавляйте понравившиеся товары, чтобы не потерять их
             </Text>
             <TouchableOpacity
               className="bg-white border border-gray-200 px-8 py-2.5 rounded-full flex-row items-center active:bg-gray-50 mt-4"
               activeOpacity={0.8}
               onPress={() => router.push('/(tabs)')}
             >
-              <Text className="text-[#111827] font-inter-semibold text-base">В каталог</Text>
+              <Text className="text-black font-inter-semibold text-base">В каталог</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <View className="px-6 gap-4">
-            {optimisticWishlist.map((item) => {
-              const inStock = item.stock > 0;
-              const brandName = getBrandName(item);
-
-              return (
-                <TouchableOpacity
-                  key={item._id}
-                  className="bg-white rounded-3xl p-4 border border-gray-200 flex-row items-start"
-                  activeOpacity={0.9}
-                  onPress={() => router.push(`/product/${item._id}` as any)}
-                >
-                  {item.isBestseller && (
-                    <View className="absolute top-3 left-3.5 z-10 bg-red-400 px-2 py-1.5 rounded-full flex-row items-center shadow-sm">
-                      <Ionicons
-                        name="flash"
-                        size={11}
-                        color="#FFFFFF"
-                        style={{ marginRight: 2.5 }}
-                      />
-                      <Text className="text-white text-xs font-inter-extrabold tracking-wider uppercase">
-                        Хит
-                      </Text>
-                    </View>
-                  )}
-                  <Image
-                    source={item.images[0]}
-                    style={{ width: 110, height: 110, borderRadius: 16 }}
-                    contentFit="cover"
-                    className="bg-gray-50 border border-gray-100"
-                  />
-
-                  <View className="flex-1 ml-4 py-1">
-                    <View className="flex-row justify-between items-start">
-                      <Text className="text-[#9CA3AF] text-[12px] font-raleway-bold uppercase tracking-wide mt-1">
-                        {brandName}
-                      </Text>
-
-                      <TouchableOpacity
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          setItemToDelete(item);
-                        }}
-                        disabled={isRemovingFromWishlist}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        className="bg-gray-50 p-1.5 rounded-full"
-                      >
-                        <Ionicons name="close" size={18} color="#9CA3AF" />
-                      </TouchableOpacity>
-                    </View>
-
-                    <Text
-                      className="text-[#111827] font-raleway-bold text-base leading-5 mb-2.5 -mt-2.5 pr-2"
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {item.name}
-                    </Text>
-
-                    <View className="mb-2.5">
-                      <Text className="text-[#111827] font-inter-extrabold text-xl">
-                        {formatPrice(item.price)}
-                      </Text>
-                      {!inStock && (
-                        <Text className="text-red-500 text-xs mt-1 font-inter-medium">
-                          Нет в наличии
-                        </Text>
-                      )}
-                    </View>
-
-                    {inStock && (
-                      <TouchableOpacity
-                        className="bg-primary rounded-xl py-2.5 px-3 flex-row items-center justify-center shadow-sm shadow-primary/20 active:opacity-90"
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          handleAddToCart(item._id, item.name);
-                        }}
-                        disabled={isAddingToCart}
-                      >
-                        {isAddingToCart ? (
-                          <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                          <>
-                            <Ionicons
-                              name="bag-handle"
-                              size={18}
-                              color="#fff"
-                              style={{ marginRight: 6 }}
-                            />
-                            <Text className="text-white font-inter-bold text-sm">В корзину</Text>
-                          </>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+          <View className="px-6">
+            {optimisticWishlist.map((item) => (
+              <WishlistItem key={item._id} item={item} onDelete={(prod) => setItemToDelete(prod)} />
+            ))}
           </View>
         )}
       </ScrollView>

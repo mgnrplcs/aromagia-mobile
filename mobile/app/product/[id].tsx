@@ -15,8 +15,6 @@ import {
   ScrollView,
   Dimensions,
   LayoutAnimation,
-  Platform,
-  UIManager,
   StyleSheet,
   Animated,
   NativeSyntheticEvent,
@@ -24,12 +22,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Brand, Product } from '@/types';
-import { formatPrice } from '@/lib/utils';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+import { Brand, Product, Review, User } from '@/types'; // Добавлен Review и User
+import { formatPrice, getDeclension, formatDate } from '@/lib/utils'; // Добавлен getDeclension, formatDate
+import { useQuery } from '@tanstack/react-query'; // Для загрузки отзывов
+import { useApi } from '@/lib/api'; // Для API
 
 const { width } = Dimensions.get('window');
 const IMAGE_HEIGHT = 440;
@@ -57,10 +53,11 @@ const ProductDetailScreen = () => {
         <ProductGallery images={product.images} />
         <ProductInfo product={product} brand={brand} />
 
-        {/* Табы со свайпом и скрытием характеристик */}
         <SwipeableProductTabs product={product} brand={brand} />
 
-        <ProductReviews count={product.totalReviews} />
+        {/* Передаем ID продукта для загрузки отзывов */}
+        <ProductReviews productId={product._id} count={product.totalReviews} />
+
         <RecommendationsList items={recommendations} />
       </ScrollView>
 
@@ -156,10 +153,10 @@ const ProductGallery = ({ images }: { images: string[] }) => {
 // 3. ИНФОРМАЦИЯ
 const ProductInfo = ({ product, brand }: { product: Product; brand: Brand | null }) => (
   <View className="px-6 pt-5">
-    <Text className="text-[#111827] font-raleway-bold text-lg mb-0.5 uppercase tracking-widest">
+    <Text className="text-black font-raleway-bold text-lg mb-1 uppercase tracking-widest">
       {brand?.name}
     </Text>
-    <Text className="text-[#111827] text-2xl font-raleway-medium mb-3 tracking-wide leading-tight">
+    <Text className="text-black text-2xl font-raleway-medium mb-3 tracking-wide">
       {product.name}
     </Text>
     <View className="flex-row items-center mb-4">
@@ -173,25 +170,22 @@ const ProductInfo = ({ product, brand }: { product: Product; brand: Brand | null
           />
         ))}
       </View>
-      <Text className="text-gray-500 font-inter tracking-wide text-sm ml-2">
-        {product.totalReviews} отзывов
+      {/* ИСПРАВЛЕНО: Склонение отзывов */}
+      <Text className="text-black/70 font-inter tracking-wider text-sm ml-2.5">
+        {product.totalReviews} {getDeclension(product.totalReviews, ['отзыв', 'отзыва', 'отзывов'])}
       </Text>
     </View>
-    <Text className="text-gray-600 text-base leading-7 font-inter-light pb-5">
-      {product.description}
-    </Text>
+    <Text className="text-black/80 text-lg leading-7 font-raleway pb-5">{product.description}</Text>
   </View>
 );
 
-// 4. ТАБЫ (ИСПРАВЛЕННЫЕ)
+// 4. Табы
 const SwipeableProductTabs = ({ product, brand }: { product: Product; brand: Brand | null }) => {
   const [activeTab, setActiveTab] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
 
-  // Стейт для раскрытия характеристик
   const [showAllFeatures, setShowAllFeatures] = useState(false);
 
-  // Собираем все характеристики в один массив для удобного слайса
   const allFeatures = useMemo(() => {
     const list = [];
     if (product.concentration) list.push({ label: 'Тип продукта', value: product.concentration });
@@ -238,7 +232,7 @@ const SwipeableProductTabs = ({ product, brand }: { product: Product; brand: Bra
         onMomentumScrollEnd={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Слайд 1: Характеристики (с кнопкой Показать все) */}
+        {/* Слайд 1: Характеристики */}
         <View style={{ width: width }} className="px-6 pb-4">
           <View className="gap-3">
             {displayedFeatures.map((feat, idx) => (
@@ -251,7 +245,7 @@ const SwipeableProductTabs = ({ product, brand }: { product: Product; brand: Bra
               onPress={() => setShowAllFeatures(true)}
               className="mt-4 py-3 items-center border border-gray-200 rounded-xl"
             >
-              <Text className="text-gray-800 font-inter-medium text-base">
+              <Text className="text-black font-inter-medium tracking-wide text-base">
                 Показать все характеристики
               </Text>
             </TouchableOpacity>
@@ -277,10 +271,10 @@ const SwipeableProductTabs = ({ product, brand }: { product: Product; brand: Bra
               />
             )}
             <View className="ml-4">
-              <Text className="text-xl font-raleway-semibold tracking-wide text-gray-900">
+              <Text className="text-xl font-raleway-semibold tracking-wide text-black">
                 {brand?.name}
               </Text>
-              <Text className="text-gray-400 text-[12px] uppercase tracking-wide">
+              <Text className="text-black text-sm uppercase font-raleway-medium tracking-widest">
                 Официальный представитель
               </Text>
             </View>
@@ -294,7 +288,104 @@ const SwipeableProductTabs = ({ product, brand }: { product: Product; brand: Bra
   );
 };
 
-// 5. НИЖНЯЯ ПАНЕЛЬ (КНОПКА ИСПРАВЛЕНА)
+// 6. БЛОК ОТЗЫВОВ (ОБНОВЛЕННЫЙ)
+const ProductReviews = ({ productId, count }: { productId: string; count: number }) => {
+  const api = useApi();
+
+  // Загружаем отзывы
+  const { data: reviews, isLoading } = useQuery({
+    queryKey: ['reviews', productId],
+    queryFn: async () => {
+      const { data } = await api.get<{ reviews: Review[] }>(`/reviews/product/${productId}`);
+      return data.reviews;
+    },
+  });
+
+  return (
+    <View className="mt-5 pt-4 px-6 border-t border-gray-100">
+      {/* Заголовок */}
+      <View className="flex-row justify-between items-center mb-5">
+        <Text className="text-xl font-raleway-bold text-black">Отзывы ({count})</Text>
+        {/* Можно добавить кнопку "Смотреть все", если будет отдельная страница */}
+      </View>
+
+      {isLoading ? (
+        <ActivityIndicator size="small" color="#000" />
+      ) : !reviews || reviews.length === 0 ? (
+        // Если отзывов нет
+        <View className="bg-gray-50 rounded-2xl p-6 items-center border border-gray-200 border-dashed">
+          <Ionicons name="chatbubbles-outline" size={35} color="#9CA3AF" />
+          <Text className="text-gray-500 font-inter mt-2 text-center text-base">
+            Отзывов пока нет. Будьте первым!
+          </Text>
+        </View>
+      ) : (
+        // Список отзывов
+        <View className="gap-5">
+          {reviews.slice(0, 3).map((review) => {
+            // Типизируем юзера (т.к. в Review он может быть строкой или объектом, но populate делает его объектом)
+            const user = review.userId as User;
+
+            return (
+              <View key={review._id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                {/* Шапка отзыва: Аватар, Имя, Дата */}
+                <View className="flex-row items-center mb-2">
+                  <View className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden mr-3 border border-white">
+                    {user?.imageUrl ? (
+                      <Image source={user.imageUrl} style={{ width: '100%', height: '100%' }} />
+                    ) : (
+                      <View className="flex-1 items-center justify-center">
+                        <Ionicons name="person" size={20} color="#9CA3AF" />
+                      </View>
+                    )}
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-black font-inter-semibold text-[15px]">
+                      {user?.firstName} {user?.lastName}
+                    </Text>
+                    <Text className="text-gray-400 font-inter text-xs mt-0.5">
+                      {formatDate(review.createdAt)}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Рейтинг */}
+                <View className="flex-row gap-0.5 mb-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Ionicons
+                      key={star}
+                      name={star <= review.rating ? 'star' : 'star-outline'}
+                      size={14}
+                      color="#FBBF24" // Желтый цвет для звезд
+                    />
+                  ))}
+                </View>
+
+                {/* Комментарий */}
+                {review.comment ? (
+                  <Text className="text-gray-700 font-inter leading-5 text-[14px]">
+                    {review.comment}
+                  </Text>
+                ) : null}
+              </View>
+            );
+          })}
+
+          {/* Кнопка "Показать больше" если отзывов много */}
+          {reviews.length > 3 && (
+            <TouchableOpacity className="items-center py-2">
+              <Text className="text-black font-inter-semibold text-sm underline">
+                Смотреть все отзывы
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+    </View>
+  );
+};
+
+// 7. Нижняя панель
 const ProductBottomBar = ({ product, insets }: { product: Product; insets: any }) => {
   const {
     cart,
@@ -360,18 +451,18 @@ const ProductBottomBar = ({ product, insets }: { product: Product; insets: any }
               )}
             </TouchableOpacity>
           ) : (
-            // КНОПКА В КОРЗИНЕ (Синяя слева | Белая справа)
+            // Кнопка в корзине (Синяя слева | Белая справа)
             <View className="flex-row h-12 shadow-sm rounded-2xl overflow-hidden border border-gray-200 bg-white">
               {/* Левая часть: Синяя */}
               <TouchableOpacity
                 onPress={() => router.push('/(tabs)/cart')}
-                className="flex-1 gap-1 items-center justify-center flex-row bg-blue-500"
+                className="flex-1 items-center justify-center flex-row bg-blue-500"
               >
                 <Ionicons name="bag-handle" size={20} color={!inStock ? '#9CA3AF' : '#FFF'} />
                 <Ionicons
-                  name="checkmark-circle"
+                  name="caret-back-outline"
                   size={20}
-                  color={!inStock ? '#9CA3AF' : '#87E4AB'}
+                  color={!inStock ? '#9CA3AF' : '#FFF'}
                 />
               </TouchableOpacity>
 
@@ -409,36 +500,11 @@ const ProductBottomBar = ({ product, insets }: { product: Product; insets: any }
   );
 };
 
-// ... Отзывы, Рекомендации ...
-const ProductReviews = ({ count }: { count: number }) => (
-  <View className="mt-5 pt-4 px-6 border-t border-gray-100">
-    <View className="flex-row justify-between items-center mb-3">
-      <Text className="text-xl font-raleway-bold text-[#111827]">Отзывы</Text>
-      <TouchableOpacity>
-        <Text className="text-blue-600 font-inter-semibold text-sm">Все ({count})</Text>
-      </TouchableOpacity>
-    </View>
-    <View className="bg-gray-50 rounded-2xl p-6 items-center border border-gray-200 border-dashed">
-      <Ionicons name="chatbubbles-outline" size={35} color="#9CA3AF" />
-      <Text className="text-gray-500 font-inter mt-2 text-center text-base">
-        Поделитесь своим мнением
-      </Text>
-      <TouchableOpacity className="mt-2.5 bg-white border border-gray-200 rounded-full px-6 py-2">
-        <Text className="font-inter-medium text-[#111827] tracking-wide text-sm">
-          Написать отзыв
-        </Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-);
-
 const RecommendationsList = ({ items }: { items: Product[] | undefined }) => {
   if (!items || items.length === 0) return null;
   return (
     <View className="mt-8 pt-4 border-t border-gray-100 bg-white">
-      <Text className="text-xl font-raleway-bold text-[#111827] px-6 mb-4">
-        Вам может понравиться
-      </Text>
+      <Text className="text-xl font-raleway-bold text-black px-6 mb-4">Вам может понравиться</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -462,17 +528,17 @@ const RecommendationsList = ({ items }: { items: Product[] | undefined }) => {
             <View className="px-1">
               <Text
                 numberOfLines={1}
-                className="font-raleway-bold text-[#111827] text-[13px] uppercase tracking-widest mb-0.5"
+                className="font-raleway-bold text-black text-sm uppercase tracking-widest"
               >
                 {typeof rec.brand === 'object' ? rec.brand.name : 'Бренд'}
               </Text>
               <Text
-                numberOfLines={2}
-                className="font-raleway-medium text-[#111827] text-[14px] tracking-wide leading-5 h-10"
+                numberOfLines={1}
+                className="font-raleway-medium text-black text-[15px] tracking-wide h-11"
               >
                 {rec.name}
               </Text>
-              <Text className="font-inter-bold text-[#111827] -mt-2 text-xl">
+              <Text className="font-inter-bold text-black -mt-2 text-xl">
                 {formatPrice(rec.price)}
               </Text>
             </View>
@@ -498,10 +564,10 @@ const TabButton = ({
   <TouchableOpacity
     onPress={onPress}
     activeOpacity={1}
-    className={`pb-3 border-b-2 px-1 flex-1 items-center ${active ? 'border-[#111827]' : 'border-transparent'}`}
+    className={`pb-2.5 border-b-2 px-1 flex-1 items-center ${active ? 'border-black' : 'border-transparent'}`}
   >
     <Text
-      className={`font-raleway-bold text-base uppercase tracking-widest ${active ? 'text-[#111827]' : 'text-gray-400/60'}`}
+      className={`font-raleway-bold text-base uppercase tracking-widest ${active ? 'text-black' : 'text-[#a3a3a3]'}`}
     >
       {label}
     </Text>

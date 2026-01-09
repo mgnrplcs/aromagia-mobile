@@ -2,24 +2,24 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { Brand, Product } from '@/types';
+import { Brand, Product } from '@/types'; // Убедись, что путь к типам верный
 
-interface DeleteProductModalProps {
+interface RemoveItemModalProps {
   visible: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  product: Product | null;
+  product: Product | null; // Заменили productName на целый объект Product для красивой карточки
 }
 
-export default function DeleteProductModal({
+export default function RemoveItemModal({
   visible,
   onClose,
   onConfirm,
   product,
-}: DeleteProductModalProps) {
+}: RemoveItemModalProps) {
   if (!product) return null;
 
-  // Хелпер для бренда
+  // Хелпер для бренда (как в твоем примере)
   const getBrandName = (item: Product) => {
     if (item.brand && typeof item.brand === 'object' && 'name' in item.brand) {
       return (item.brand as Brand).name;
@@ -39,14 +39,14 @@ export default function DeleteProductModal({
         <View className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl">
           <View className="px-6 pt-8 pb-5 items-center">
             <Text className="text-black font-raleway-bold text-xl text-center mb-2.5">
-              Удалить из избранного?
+              Удалить из корзины?
             </Text>
 
             <Text className="text-black/80 font-inter tracking-wide text-center text-[13px] mb-4">
               Вы хотите удалить следующий товар:
             </Text>
 
-            {/* Карточка */}
+            {/* Карточка товара */}
             <View className="w-full flex-row items-center bg-gray-50 p-3 rounded-xl border border-gray-100 mb-4">
               <Image
                 source={product.images[0]}

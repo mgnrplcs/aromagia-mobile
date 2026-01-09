@@ -5,15 +5,29 @@ export const capitalizeFirstLetter = (text: string) => {
 
 // Возвращает класс цвета для бейджика статуса заказа
 export const getStatusColor = (status: string) => {
-  switch (status.toLowerCase()) {
+  switch (status?.toLowerCase()) {
+    case 'доставлен':
     case 'delivered':
-      return '#10B981';
+      return '#10B981'; // Зеленый
+
+    case 'отправлен':
     case 'shipped':
-      return '#3B82F6';
+      return '#3B82F6'; // Синий
+
+    case 'оплачен':
+    case 'paid':
+      return '#6366F1'; // Индиго
+
+    case 'в ожидании':
     case 'pending':
-      return '#F59E0B';
+      return '#F59E0B'; // Желтый
+
+    case 'отменен':
+    case 'cancelled':
+      return '#EF4444'; // Красный
+
     default:
-      return '#666';
+      return '#6B7280'; // Серый
   }
 };
 

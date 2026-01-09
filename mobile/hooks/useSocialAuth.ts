@@ -2,6 +2,7 @@ import { useSSO, useClerk } from '@clerk/clerk-expo';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner-native';
 import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 
 // Подготовка браузера для Android
 export const useWarmUpBrowser = () => {
@@ -27,13 +28,26 @@ function useSocialAuth() {
       setLoadingStrategy(strategy);
 
       try {
-        const { createdSessionId, setActive } = await startSSOFlow({ strategy });
+        const redirectUrl = AuthSession.makeRedirectUri({
+          path: '/',
+          scheme: 'aromagiamobile',
+        });
+
+        const { createdSessionId, setActive } = await startSSOFlow({
+          strategy,
+          redirectUrl,
+        });
 
         if (createdSessionId && setActive) {
           await setActive({ session: createdSessionId });
+          return;
+        } else {
+          setLoadingStrategy(null);
         }
       } catch (err: any) {
         console.log('OAuth error:', err);
+
+        setLoadingStrategy(null);
 
         const errorMessage = err?.errors?.[0]?.message || err?.message || '';
 
@@ -48,11 +62,11 @@ function useSocialAuth() {
         }
 
         const provider = strategy === 'oauth_google' ? 'Google' : 'Apple';
-        toast.error('Ошибка входа', {
-          description: err.errors?.[0]?.longMessage || `Не удалось войти через ${provider}`,
-        });
-      } finally {
-        setLoadingStrategy(null);
+        if (!errorMessage.includes('user cancelled')) {
+          toast.error('Ошибка входа', {
+            description: err.errors?.[0]?.longMessage || `Не удалось войти через ${provider}`,
+          });
+        }
       }
     },
     [startSSOFlow, signOut]

@@ -9,7 +9,7 @@ import useWishlist from '@/hooks/useWishlist';
 import { toast } from 'sonner-native';
 import { Brand, Product } from '@/types';
 import * as Haptics from 'expo-haptics';
-import PageLoader from './PageLoader';
+import PageLoader from '../components/PageLoader';
 import ErrorState from '@/components/ErrorState';
 
 interface ProductsGridProps {
@@ -28,7 +28,6 @@ const ProductsGrid = ({ products, isLoading, isError, onRetry }: ProductsGridPro
     return <ErrorState onRetry={onRetry} contentContainerStyle="bg-transparent mt-24" />;
   }
 
-  // 3. ПУСТО (Красивая заглушка)
   if (products.length === 0) {
     return (
       <View className="items-center justify-center min-h-[450px]">
@@ -37,13 +36,12 @@ const ProductsGrid = ({ products, isLoading, isError, onRetry }: ProductsGridPro
         </View>
         <Text className="text-[#111827] font-raleway-medium text-lg">Ничего не найдено</Text>
         <Text className="text-[#6B7280] font-inter-light mt-1 text-base">
-          Попробуйте изменить запрос или фильтры
+          Попробуйте изменить параметры поиска
         </Text>
       </View>
     );
   }
 
-  // 4. СПИСОК ТОВАРОВ
   return (
     <View className="flex-row flex-wrap justify-between pb-10">
       {products.map((item) => (
@@ -53,12 +51,29 @@ const ProductsGrid = ({ products, isLoading, isError, onRetry }: ProductsGridPro
   );
 };
 
-// --- КАРТОЧКА ТОВАРА  ---
+// --- КАРТОЧКА ТОВАРА ---
 const ProductCard = ({ item }: { item: Product }) => {
-  const { addToCart, isAddingToCart } = useCart();
+  // Хук корзины
+  const { cart, addToCart, updateQuantity, removeFromCart, isUpdating, isRemoving } = useCart();
   const { wishlist, addToWishlist, removeFromWishlist } = useWishlist();
 
-  const isActuallyInWishlist = wishlist.some((w) => w._id === item._id);
+  // Логика корзины для ЭТОГО товара
+  const cartItem = cart?.items.find(
+    (cItem) => (typeof cItem.product === 'string' ? cItem.product : cItem.product._id) === item._id
+  );
+  const quantityInCart = cartItem ? cartItem.quantity : 0;
+
+  const handleIncrease = () => {
+    updateQuantity({ productId: item._id, quantity: quantityInCart + 1 });
+  };
+
+  const handleDecrease = () => {
+    if (quantityInCart === 1) removeFromCart(item._id);
+    else updateQuantity({ productId: item._id, quantity: quantityInCart - 1 });
+  };
+
+  // Логика вишлиста
+  const isActuallyInWishlist = wishlist?.some((w) => w._id === item._id) || false;
   const [isLiked, setIsLiked] = useState(isActuallyInWishlist);
 
   useEffect(() => {
@@ -92,16 +107,6 @@ const ProductCard = ({ item }: { item: Product }) => {
     }
   };
 
-  const handleAddToCart = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    addToCart(
-      { productId: item._id, quantity: 1 },
-      {
-        onSuccess: () => toast.success('В корзине!'),
-      }
-    );
-  };
-
   return (
     <TouchableOpacity
       className="bg-white w-[48%] rounded-[20px] p-3 mb-4 border border-gray-200"
@@ -124,9 +129,9 @@ const ProductCard = ({ item }: { item: Product }) => {
         </TouchableOpacity>
 
         {item.isBestseller && (
-          <View className="absolute top-1 left-0.5 z-10 bg-red-400 px-2 py-1.5 rounded-full flex-row items-center">
+          <View className="absolute top-1 left-0.5 z-10 bg-red-400 px-2.5 py-1.5 rounded-full flex-row items-center">
             <Ionicons name="flash" size={11} color="#FFFFFF" style={{ marginRight: 2.5 }} />
-            <Text className="text-white text-[10px] font-inter-extrabold tracking-wider uppercase">
+            <Text className="text-white text-xs font-inter-extrabold tracking-wider uppercase">
               Хит
             </Text>
           </View>
@@ -142,42 +147,93 @@ const ProductCard = ({ item }: { item: Product }) => {
 
       <View className="mt-2">
         <Text
-          className="text-[#111827] text-[12px] font-raleway-bold uppercase tracking-widest mb-0.5"
+          className="text-black text-sm font-raleway-bold uppercase tracking-widest"
           numberOfLines={1}
         >
           {brandName}
         </Text>
 
         <Text
-          className="text-[#111827] font-raleway-medium text-[14px] tracking-wide leading-[18px] h-9"
-          numberOfLines={2}
+          className="text-black font-raleway-medium text-[15px] tracking-wide h-8"
+          numberOfLines={1}
           textBreakStrategy="highQuality"
         >
           {item.name}
         </Text>
 
-        <Text className="text-[#111827] font-inter-extrabold text-[17px] -mt-1 mb-3">
+        <Text className="text-black font-inter-bold text-[17px] mb-3">
           {formatPrice(item.price)}
         </Text>
 
+        {/* КНОПКА ДОБАВЛЕНИЯ */}
         {item.stock > 0 ? (
-          <TouchableOpacity
-            className="bg-primary w-full py-2.5 rounded-xl flex-row items-center justify-center active:bg-primary-dark"
-            onPress={(e) => {
-              e.stopPropagation();
-              handleAddToCart();
-            }}
-            disabled={isAddingToCart}
-          >
-            {isAddingToCart ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <>
+          <View>
+            {!cartItem ? (
+              <TouchableOpacity
+                className="bg-black w-full py-2.5 rounded-xl flex-row items-center justify-center active:bg-gray-800"
+                onPress={(e) => {
+                  e.stopPropagation();
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  addToCart({ productId: item._id, quantity: 1 });
+                }}
+                disabled={isUpdating} // Используем isUpdating, так как addToCartMutation тоже меняет состояние
+              >
                 <Ionicons name="bag-handle" size={16} color="white" style={{ marginRight: 6 }} />
-                <Text className="text-white font-inter-bold text-[13px]">В корзину</Text>
-              </>
+                <Text className="text-white font-inter-bold tracking-wide text-[13px]">
+                  В корзину
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              // Кнопка в корзине
+              <View className="flex-row h-[40px] w-full shadow-sm rounded-xl overflow-hidden border border-gray-200 bg-white">
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    router.push('/(tabs)/cart');
+                  }}
+                  className="bg-blue-500 w-10 items-center justify-center h-full active:bg-blue-600"
+                >
+                  <Ionicons name="bag-check" size={18} color="white" />
+                </TouchableOpacity>
+
+                <View className="flex-1 flex-row items-center justify-between px-2 bg-white h-full">
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDecrease();
+                    }}
+                    disabled={isUpdating || isRemoving}
+                    className="w-7 h-7 bg-gray-50 rounded-full items-center justify-center active:bg-gray-100"
+                  >
+                    {isRemoving ? (
+                      <ActivityIndicator size="small" color="#111827" />
+                    ) : (
+                      <Ionicons name="remove" size={14} color="#111827" />
+                    )}
+                  </TouchableOpacity>
+
+                  <Text className="text-[#111827] font-inter-bold text-[14px]">
+                    {isUpdating ? (
+                      <ActivityIndicator size="small" color="#111827" />
+                    ) : (
+                      quantityInCart
+                    )}
+                  </Text>
+
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleIncrease();
+                    }}
+                    disabled={isUpdating || quantityInCart >= item.stock}
+                    className="w-7 h-7 bg-gray-50 rounded-full items-center justify-center active:bg-gray-100"
+                  >
+                    <Ionicons name="add" size={14} color="#111827" />
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
-          </TouchableOpacity>
+          </View>
         ) : (
           <View className="bg-gray-100 w-full py-2.5 rounded-xl items-center justify-center">
             <Text className="text-gray-400 font-inter-bold text-[12px]">Нет в наличии</Text>

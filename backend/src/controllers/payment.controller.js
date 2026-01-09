@@ -77,6 +77,7 @@ export async function createPaymentIntent(req, res) {
       const customer = await stripe.customers.create({
         email: user.email,
         name: `${user.firstName} ${user.lastName}`,
+        preferred_locales: ["ru"],
         metadata: {
           userId: user._id.toString(),
           clerkId: user.clerkId,

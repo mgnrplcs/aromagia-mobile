@@ -31,12 +31,12 @@ export default function DeleteAddressModal({
       <View className="flex-1 bg-black/40 items-center justify-center px-4">
         <View className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl">
           <View className="px-6 pt-8 pb-6 items-center">
-            <Text className="text-[#111827] font-raleway-bold text-xl text-center mb-3">
+            <Text className="text-[#111827] font-raleway-bold text-xl text-center mb-2.5">
               Удалить адрес?
             </Text>
 
-            <Text className="text-[#6B7280] font-inter text-center text-[13px] mb-5">
-              Вы собираетесь удалить следующий адрес:
+            <Text className="text-black/80 font-inter tracking-wide text-center text-[13px] mb-4">
+              Вы собираетесь удалить этот адрес:
             </Text>
 
             {/* Карточка удаляемого объекта */}
@@ -64,15 +64,10 @@ export default function DeleteAddressModal({
               </View>
             </View>
 
-            <View className="w-full flex-row items-center bg-orange-50 p-3 rounded-xl border border-orange-100/50">
-              <Ionicons
-                name="information-circle"
-                size={18}
-                color="#F97316"
-                style={{ marginRight: 7 }}
-              />
-              <Text className="text-orange-500 text-sm font-inter-medium">
-                Это действие нельзя будет отменить
+            <View className="w-full flex-row items-center bg-red-500/5 p-3 rounded-xl border border-red-500/10">
+              <Ionicons name="information-circle" size={18} color="#EF4444" />
+              <Text className="ml-2 text-red-500/90 font-inter-medium text-sm tracking-wide flex-1">
+                Это действие отменить будет нельзя
               </Text>
             </View>
           </View>
@@ -82,20 +77,20 @@ export default function DeleteAddressModal({
             <TouchableOpacity
               onPress={onClose}
               disabled={isDeleting}
-              className="flex-1 bg-white border border-gray-200 py-3 rounded-xl items-center active:bg-gray-100"
+              className="flex-1 bg-white border border-gray-200 py-2.5 rounded-xl items-center active:bg-gray-100"
             >
-              <Text className="text-[#374151] font-inter-semibold text-[15px]">Отмена</Text>
+              <Text className="text-black font-inter-medium text-[15px]">Отмена</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={onConfirm}
               disabled={isDeleting}
-              className="flex-1 bg-[#EF4444] py-3 rounded-xl items-center shadow-sm active:bg-red-600"
+              className="flex-1 bg-[#EF4444] py-2.5 rounded-xl items-center shadow-sm active:bg-red-600"
             >
               {isDeleting ? (
                 <Text className="text-white font-inter-semibold text-[15px]">...</Text>
               ) : (
-                <Text className="text-white font-inter-semibold text-[15px]">Удалить</Text>
+                <Text className="text-white font-inter-medium text-[15px]">Удалить</Text>
               )}
             </TouchableOpacity>
           </View>

@@ -297,7 +297,13 @@ export async function updateOrderStatus(req, res) {
   try {
     const { orderId } = req.params;
     const { status } = req.body;
-    const allowedStatuses = ["В ожидании", "Отправлен", "Доставлен"];
+    const allowedStatuses = [
+      "В ожидании",
+      "Оплачен",
+      "Отправлен",
+      "Доставлен",
+      "Отменен",
+    ];
 
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({

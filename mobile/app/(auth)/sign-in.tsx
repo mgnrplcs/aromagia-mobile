@@ -1,7 +1,7 @@
 import useSocialAuth from '@/hooks/useSocialAuth';
 import { ActivityIndicator, Image, Text, TouchableOpacity, View, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+// Импорт LinearGradient удален
 
 const AuthScreen = () => {
   const { loadingStrategy, handleSocialAuth } = useSocialAuth();
@@ -17,29 +17,20 @@ const AuthScreen = () => {
         resizeMode="cover"
       />
 
-      {/* Затемнение */}
-      <View className="absolute w-full h-full bg-black/25" />
-
-      {/* Градиент */}
-      <LinearGradient
-        colors={['transparent', 'transparent', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)', 'black']}
-        locations={[0, 0.4, 0.6, 0.85, 1]}
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: '100%',
-        }}
-      />
-
       {/* Контент */}
-      <SafeAreaView className="flex-1 tracking-wide justify-end px-6 pb-8">
-        <View className="mb-6 items-center">
-          <Text className="text-white/70 font-inter-bold text-xs uppercase tracking-[4px] mb-3">
-            Парфюмерный магазин
+      <SafeAreaView className="flex-1 tracking-wide justify-end px-6 pb-6">
+        <View className="mb-6 items-center justify-center">
+          {/* Категория */}
+          <View className="bg-white/10 px-4 py-1.5 rounded-full -mb-0.5 border border-white/30 self-center">
+            <Text className="text-white/90 font-inter-bold text-xs uppercase tracking-[1.5px]">
+              Магазин парфюмерии
+            </Text>
+          </View>
+
+          {/* Заголовок */}
+          <Text className="text-white font-raleway-bold text-6xl leading-tight shadow-lg text-center">
+            Аромагия
           </Text>
-          <Text className="text-white font-raleway-bold text-5xl text-center">Аромагия ✨</Text>
         </View>
 
         <View className="gap-y-4 w-full">
@@ -60,7 +51,7 @@ const AuthScreen = () => {
                   style={{ tintColor: 'white' }}
                   resizeMode="contain"
                 />
-                <Text className="text-white font-inter-semibold text-[17px]">
+                <Text className="text-white font-inter-semibold mb-0.5 text-[17px]">
                   Продолжить с Apple
                 </Text>
               </View>
@@ -83,7 +74,7 @@ const AuthScreen = () => {
                   className="w-5 h-5 mr-3"
                   resizeMode="contain"
                 />
-                <Text className="text-black font-inter-semibold text-[17px]">
+                <Text className="text-black font-inter-semibold mb-0.5 text-[17px]">
                   Продолжить с Google
                 </Text>
               </View>
@@ -92,13 +83,11 @@ const AuthScreen = () => {
         </View>
 
         {/* Юридическая информация */}
-        <Text className="text-center text-white/40 text-[11px] leading-4 mt-5 font-inter-medium">
-          Авторизовываясь, вы соглашаетесь с нашими{' '}
-          <Text className="text-white/70 underline">Правилами</Text>
-          {', '}
-          <Text className="text-white/70 underline">Политикой конфиденциальности</Text>
+        <Text className="text-center text-white/80 text-sm leading-5 mt-4 font-inter-semibold">
+          Авторизовываясь, Вы соглашаетесь с нашей{' '}
+          <Text className="text-white/90 underline">Политикой конфиденциальности</Text>
           {' и '}
-          <Text className="text-white/70 underline">использованием cookie</Text>.
+          <Text className="text-white/90 underline">использованием cookie</Text>
         </Text>
       </SafeAreaView>
     </View>
