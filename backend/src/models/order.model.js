@@ -29,7 +29,6 @@ const OrderItemSchema = new mongoose.Schema({
   },
   volume: {
     type: Number,
-    required: false, // Optional for backward compatibility or non-variant products
   },
 });
 

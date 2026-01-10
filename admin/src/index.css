@@ -7,7 +7,6 @@
 /* Inter Regular (400) */
 @font-face {
   font-family: "Inter";
-  /* Обрати внимание: расширение .otf и формат opentype */
   src: url("/fonts/Inter/Inter-Regular.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
@@ -40,7 +39,6 @@
 /* Raleway Regular (400) */
 @font-face {
   font-family: "Raleway";
-  /* Тут оставляем .ttf и truetype */
   src: url("/fonts/Raleway/Raleway-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;

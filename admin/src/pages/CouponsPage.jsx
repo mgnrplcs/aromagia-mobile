@@ -17,7 +17,6 @@ import { couponApi } from "../lib/api";
 import { formatDate } from "../lib/utils";
 import PageLoader from "../components/PageLoader";
 
-// Импорт модалок
 import CouponModal from "../modals/CouponModal";
 import DeleteCouponModal from "../modals/DeleteCouponModal";
 
@@ -26,12 +25,10 @@ function CouponsPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Состояния для модалок
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState(null);
   const [deletingCoupon, setDeletingCoupon] = useState(null);
 
-  // --- 1. Загрузка ---
   const { data: couponsData, isLoading } = useQuery({
     queryKey: ["coupons"],
     queryFn: async () => {
@@ -40,7 +37,6 @@ function CouponsPage() {
     },
   });
 
-  // --- 2. Создание ---
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const token = await getToken();
@@ -56,7 +52,6 @@ function CouponsPage() {
     },
   });
 
-  // --- 3. Удаление ---
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
       const token = await getToken();
@@ -72,7 +67,6 @@ function CouponsPage() {
     },
   });
 
-  // --- 4. Обновление ---
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       const token = await getToken();
@@ -86,7 +80,6 @@ function CouponsPage() {
     onError: (err) => alert(err.response?.data?.message || err.message),
   });
 
-  // --- 5. Переключение активности ---
   const toggleActiveMutation = useMutation({
     mutationFn: async (id) => {
       const token = await getToken();
@@ -98,7 +91,6 @@ function CouponsPage() {
     onError: (err) => alert(err.message),
   });
 
-  // Обработчики
   const handleOpenCreate = () => {
     setEditingCoupon(null);
     setIsModalOpen(true);
@@ -202,15 +194,15 @@ function CouponsPage() {
                 </thead>
                 <tbody>
                   {filteredCoupons.map((coupon) => {
-                    // Вычисления оставляем для тултипа и проверки истечения срока (красный текст даты)
                     const isExpired = new Date(coupon.validUntil) < new Date();
                     const isLimitReached =
                       coupon.maxUsage > 0 &&
                       coupon.usedCount >= coupon.maxUsage;
 
-                    // Упрощенная логика статуса:
                     const statusText = coupon.isActive ? "Активен" : "Выключен";
-                    const statusColor = coupon.isActive ? "text-success" : "text-base-content/40";
+                    const statusColor = coupon.isActive
+                      ? "text-success"
+                      : "text-base-content/40";
 
                     return (
                       <tr
@@ -274,8 +266,9 @@ function CouponsPage() {
                             </div>
                             <div className="flex flex-col">
                               <span
-                                className={`font-medium text-sm ${isExpired ? "text-error" : ""
-                                  }`}
+                                className={`font-medium text-sm ${
+                                  isExpired ? "text-error" : ""
+                                }`}
                               >
                                 {formatDate(coupon.validUntil).split(",")[0]}
                               </span>
@@ -286,7 +279,7 @@ function CouponsPage() {
                           </div>
                         </td>
 
-                        {/* 5. Статус (ИЗМЕНЕНО) */}
+                        {/* 5. Статус */}
                         <td>
                           <div className="flex items-center gap-2">
                             <input
@@ -304,7 +297,6 @@ function CouponsPage() {
                               {statusText}
                             </div>
 
-                            {/* Подсказка (Megaphone) остается, чтобы объяснить проблему */}
                             {(isExpired || isLimitReached) &&
                               coupon.isActive && (
                                 <div
@@ -349,8 +341,6 @@ function CouponsPage() {
           )}
         </div>
       </div>
-
-      {/* Модалка создания */}
       <CouponModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -359,7 +349,6 @@ function CouponsPage() {
         couponToEdit={editingCoupon}
       />
 
-      {/* Модалка удаления */}
       <DeleteCouponModal
         isOpen={!!deletingCoupon}
         onClose={() => setDeletingCoupon(null)}

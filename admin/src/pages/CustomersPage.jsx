@@ -24,11 +24,9 @@ function CustomersPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Состояния модалок
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [deletingCustomer, setDeletingCustomer] = useState(null);
 
-  // Загрузка
   const { data, isLoading } = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
@@ -37,7 +35,6 @@ function CustomersPage() {
     },
   });
 
-  // Мутация редактирования
   const updateCustomerMutation = useMutation({
     mutationFn: async ({ id, formData }) => {
       const token = await getToken();
@@ -50,7 +47,6 @@ function CustomersPage() {
     onError: (err) => alert(err.message),
   });
 
-  // Мутация удаления
   const deleteCustomerMutation = useMutation({
     mutationFn: async (id) => {
       const token = await getToken();
@@ -98,7 +94,6 @@ function CustomersPage() {
     <div className="space-y-6 tracking-wide">
       {/* Шапка */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-base-100 p-4 rounded-xl shadow-sm">
-        {/* Левая часть: Заголовок */}
         <div className="flex items-center gap-4 w-full sm:w-auto">
           <div className="p-3 bg-primary/10 rounded-xl text-primary shrink-0">
             <Users className="w-8 h-8" />
@@ -111,7 +106,6 @@ function CustomersPage() {
           </div>
         </div>
 
-        {/* Правая часть: Поиск и Фильтр */}
         <div className="flex gap-3 w-full sm:w-auto">
           <div className="relative w-full sm:w-64">
             <input
@@ -123,7 +117,6 @@ function CustomersPage() {
             />
             <Search className="w-4 h-4 absolute left-3 top-3 text-base-content/50" />
           </div>
-          {/* Кнопка фильтра */}
           <button className="btn btn-square btn-ghost border border-base-200">
             <Filter className="w-5 h-5 text-base-content" />
           </button>
@@ -314,7 +307,6 @@ function CustomersPage() {
         </div>
       </div>
 
-      {/* Модалки */}
       <EditCustomerModal
         isOpen={!!editingCustomer}
         onClose={() => setEditingCustomer(null)}

@@ -37,7 +37,7 @@ interface FilterModalProps {
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
-// --- ХЕЛПЕРЫ ДЛЯ ЦЕНЫ ---
+// --- Форматирование цены ---
 const formatNumber = (num: string | number) => {
   if (!num && num !== 0) return '';
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
@@ -63,7 +63,7 @@ export default function FilterModal({
 }: FilterModalProps) {
   const insets = useSafeAreaInsets();
 
-  // --- АНИМАЦИЯ ---
+  // --- Анимация ---
   const panY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -102,7 +102,7 @@ export default function FilterModal({
     }
   }, [visible]);
 
-  // --- ЖЕСТЫ ---
+  // --- Жесты ---
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -125,7 +125,6 @@ export default function FilterModal({
     })
   ).current;
 
-  // --- СБРОС ---
   const handleReset = () => {
     setSort('popular');
     setMinPrice('');
@@ -133,7 +132,6 @@ export default function FilterModal({
     setGender('All');
   };
 
-  // --- СЛАЙДЕР ---
   const handleSliderChange = (values: number[]) => {
     const [min, max] = values;
     setMinPrice(Math.floor(min).toString());
@@ -143,7 +141,6 @@ export default function FilterModal({
   const sliderMinValue = Number(unformatNumber(minPrice)) || absoluteMinPrice;
   const sliderMaxValue = Number(unformatNumber(maxPrice)) || absoluteMaxPrice;
 
-  // Защита от ошибок
   const safeSliderValues = [
     Math.max(absoluteMinPrice, Math.min(sliderMinValue, sliderMaxValue)),
     Math.min(absoluteMaxPrice, Math.max(sliderMinValue, sliderMaxValue)),
@@ -168,7 +165,7 @@ export default function FilterModal({
         <Animated.View
           className="bg-white w-full overflow-hidden "
           style={{
-            height: '64%',
+            height: '60%',
             paddingBottom: insets.bottom,
             transform: [{ translateY: panY }],
           }}
@@ -190,8 +187,8 @@ export default function FilterModal({
             <View className="h-[1px] bg-gray-100 w-full mt-3" />
           </View>
 
-          <ScrollView className="px-6 pt-5" showsVerticalScrollIndicator={false}>
-            {/* 1. СОРТИРОВКА */}
+          <ScrollView className="px-6 pt-3" showsVerticalScrollIndicator={false}>
+            {/* 1. Сортировка */}
             <View className="mb-5">
               <Text className="text-black font-inter-semibold text-[15px] mb-3">Сортировка</Text>
               <View className="flex-row flex-wrap gap-2.5">
@@ -218,7 +215,7 @@ export default function FilterModal({
               </View>
             </View>
 
-            {/* 2. ЦЕНА */}
+            {/* 2. Цена */}
             <View className="mb-5">
               <View className="flex-row justify-between items-end mb-1">
                 <Text className="text-black font-inter-semibold text-[15px]">Цена, ₽</Text>
@@ -233,14 +230,13 @@ export default function FilterModal({
                   value={safeSliderValues}
                   onValueChange={handleSliderChange}
                   minimumTrackTintColor="#000000"
-                  maximumTrackTintColor="#000000"
+                  maximumTrackTintColor="#E5E7EB"
                   thumbTintColor="#FFFFFF"
                   thumbStyle={styles.thumbStyle}
-                  trackStyle={{ height: 7, borderRadius: 3 }}
+                  trackStyle={{ height: 6, borderRadius: 3 }}
                 />
               </View>
 
-              {/* Поля ввода */}
               <View className="flex-row items-center gap-3">
                 <PriceInput
                   label="от"
@@ -258,7 +254,7 @@ export default function FilterModal({
               </View>
             </View>
 
-            {/* 3. ПОЛ */}
+            {/* 3. Пол */}
             <View>
               <Text className="text-black font-inter-semibold text-[15px] mb-2.5">Пол</Text>
               <View className="flex-row gap-2.5 flex-wrap">
@@ -286,7 +282,6 @@ export default function FilterModal({
             </View>
           </ScrollView>
 
-          {/* КНОПКА СБРОСИТЬ */}
           <View className="px-6 bg-white">
             <TouchableOpacity
               onPress={handleReset}
@@ -341,12 +336,10 @@ function SortChip({
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`px-5 py-2.5 rounded-xl border ${active ? 'bg-black border-black' : 'bg-white border-gray-200'
-        }`}
+      className={`px-4 py-2 rounded-xl border transition-all ${active ? 'bg-black border-black' : 'bg-white border-gray-200'}`}
     >
       <Text
-        className={`font-inter-medium tracking-wide text-[13px] ${active ? 'text-white' : 'text-gray-500'
-          }`}
+        className={`font-inter-medium tracking-wide text-sm ${active ? 'text-white' : 'text-gray-500/80'}`}
       >
         {label}
       </Text>

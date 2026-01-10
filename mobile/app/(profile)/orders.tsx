@@ -1,17 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  RefreshControl,
-} from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, RefreshControl } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-// Хуки и компоненты
 import { useOrders } from '@/hooks/useOrders';
 import { useReviews } from '@/hooks/useReviews';
 import SafeScreen from '@/components/SafeScreen';
@@ -20,12 +12,12 @@ import ErrorState from '@/components/ErrorState';
 import RatingModal from '@/components/modals/RatingModal';
 import ReturnModal from '@/components/modals/ReturnModal';
 
-// Утилиты и типы
 import { formatDate, formatPrice, getDeclension } from '@/lib/utils';
 import { Order, Product } from '@/types';
 
 interface OrderWithReview extends Order {
   hasReviewed?: boolean;
+  hasReturnRequested?: boolean;
 }
 
 export default function OrdersScreen() {
@@ -36,11 +28,9 @@ export default function OrdersScreen() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithReview | null>(null);
 
-  // Состояния для отзывов
   const [productRatings, setProductRatings] = useState<{ [key: string]: number }>({});
   const [productComments, setProductComments] = useState<{ [key: string]: string }>({});
 
-  // Состояние для модалки возврата
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedReturnOrder, setSelectedReturnOrder] = useState<OrderWithReview | null>(null);
 
@@ -50,13 +40,13 @@ export default function OrdersScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  // --- ЛОГИКА ВОЗВРАТА ---
+  // --- Логика возврата ---
   const handleOpenReturn = (order: OrderWithReview) => {
     setSelectedReturnOrder(order);
     setShowReturnModal(true);
   };
 
-  // --- ЛОГИКА ОТЗЫВОВ ---
+  // --- Логика отзывов ---
   const handleOpenRating = (order: OrderWithReview) => {
     setSelectedOrder(order);
     setShowRatingModal(true);
@@ -106,44 +96,38 @@ export default function OrdersScreen() {
     }
   };
 
-  // --- СТИЛИ СТАТУСОВ (адаптировано под твой пример) ---
+  // --- Стили статусов---
   const getStatusConfig = (status: string) => {
-    // Используем opacity/10 для фона и opacity/20 для бордера
     switch (status) {
       case 'В ожидании':
         return {
           container: 'bg-amber-500/10 border-amber-500/20',
           text: 'text-amber-600',
           label: 'В обработке',
-          icon: 'time-outline'
         };
       case 'Отправлен':
         return {
           container: 'bg-blue-500/10 border-blue-500/20',
           text: 'text-blue-600',
           label: 'Отправлен',
-          icon: 'paper-plane-outline'
         };
       case 'Доставлен':
         return {
           container: 'bg-emerald-500/10 border-emerald-500/20',
           text: 'text-emerald-600',
           label: 'Доставлен',
-          icon: 'checkmark-circle-outline'
         };
       case 'Отменен':
         return {
           container: 'bg-red-500/10 border-red-500/20',
           text: 'text-red-600',
           label: 'Отменен',
-          icon: 'close-circle-outline'
         };
       default:
         return {
           container: 'bg-gray-500/10 border-gray-500/20',
           text: 'text-gray-600',
           label: status,
-          icon: 'help-circle-outline'
         };
     }
   };
@@ -167,14 +151,25 @@ export default function OrdersScreen() {
 
   return (
     <SafeScreen>
-      <View className="px-6 pt-4 pb-4 bg-white flex-row items-center border-b border-gray-50">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center mr-4 active:bg-gray-100"
-        >
-          <Ionicons name="arrow-back" size={20} color="#111827" />
-        </TouchableOpacity>
-        <Text className="text-black text-2xl font-raleway-bold tracking-tight">Мои заказы</Text>
+      <View className="px-6 pt-2 pb-4 bg-white flex-row items-center justify-between border-b border-gray-50">
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center mr-4 active:bg-gray-100"
+          >
+            <Ionicons name="arrow-back" size={20} color="#111827" />
+          </TouchableOpacity>
+          <Text className="text-black text-2xl font-raleway-semibold tracking-wide">
+            Мои заказы
+          </Text>
+        </View>
+        {ordersList.length > 0 && (
+          <View className="bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
+            <Text className="text-primary text-sm font-inter-semibold tracking-wide">
+              {ordersList.length} {getDeclension(ordersList.length, ['заказ', 'заказа', 'заказов'])}
+            </Text>
+          </View>
+        )}
       </View>
 
       <ScrollView
@@ -204,60 +199,62 @@ export default function OrdersScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          <View className="px-5 gap-5">
-            {ordersList.map((order) => {
+          <View className="px-5">
+            {ordersList.map((order, index) => {
               const totalItems = order.orderItems.reduce((sum, item) => sum + item.quantity, 0);
               const statusConfig = getStatusConfig(order.status);
+              const marginBottom = index === ordersList.length - 1 ? 'mb-0' : 'mb-5';
 
               return (
                 <View
                   key={order._id}
-                  className="bg-white rounded-[24px] p-5 shadow-sm shadow-gray-200/60 border border-gray-100"
+                  className={`bg-white rounded-[24px] p-5 shadow-sm shadow-gray-200/60 border border-gray-100 ${marginBottom}`}
                 >
-                  {/* --- ВЕРХНИЙ БЛОК (БЕЗ КАРТИНКИ) --- */}
-                  <View className="flex-row justify-between items-start mb-4">
-                    {/* Левая часть: Номер и Дата */}
+                  {/* --- Верхний блок --- */}
+                  <View className="flex-row justify-between items-start mb-2">
                     <View>
-                      <Text className="text-black font-raleway-bold text-[18px] mb-1">
+                      <Text className="text-black font-inter-semibold text-xl">
                         Заказ №{order._id.slice(-6).toUpperCase()}
                       </Text>
-                      <Text className="text-gray-400 font-inter-medium text-[13px]">
+                      <Text className="text-gray-400/90 font-inter text-sm">
                         от {formatDate(order.createdAt)}
                       </Text>
                     </View>
 
-                    {/* Правая часть: Статус (Таблетка) */}
-                    <View className={`px-3 py-1.5 rounded-full border flex-row items-center gap-1.5 ${statusConfig.container}`}>
-                      <Ionicons name={statusConfig.icon as any} size={14} style={{ opacity: 0.8 }} color={statusConfig.text.replace('text-', '').replace('-600', '')} />
-                      <Text className={`${statusConfig.text} text-[11px] font-inter-bold tracking-wide uppercase`}>
+                    <View className={`px-3 py-1 rounded-lg ${statusConfig.container}`}>
+                      <Text
+                        className={`${statusConfig.text} text-[10px] font-inter-bold tracking-wider uppercase`}
+                      >
                         {statusConfig.label}
                       </Text>
                     </View>
                   </View>
 
-                  {/* Цена и кол-во товаров (Отдельная строка для акцента) */}
-                  <View className="flex-row items-baseline mb-5">
-                    <Text className="text-black font-inter-bold text-xl mr-2">
+                  {/* Цена и кол-во товаров */}
+                  <View className="flex-row items-baseline mb-3">
+                    <Text className="text-black font-inter-semibold text-xl mr-2">
                       {formatPrice(order.totalPrice)}
                     </Text>
-                    <Text className="text-gray-400 font-inter-medium text-sm">
+                    <Text className="text-gray-400 font-inter text-sm">
                       за {totalItems} {getDeclension(totalItems, ['товар', 'товара', 'товаров'])}
                     </Text>
                   </View>
 
-                  {/* --- СПИСОК ТОВАРОВ --- */}
+                  {/* --- Список товаров --- */}
                   <View className="bg-gray-50/50 rounded-2xl p-3 border border-gray-100 mb-5">
                     {order.orderItems.map((item, idx) => {
                       const p = item.product as Product;
-                      const brandName = item.brand || (p?.brand && typeof p.brand === 'object' ? (p.brand as any).name : '');
+                      const brandName =
+                        item.brand ||
+                        (p?.brand && typeof p.brand === 'object' ? (p.brand as any).name : 'Бренд');
                       const itemImage = p?.images?.[0];
                       const isLast = idx === order.orderItems.length - 1;
 
                       return (
-                        <View key={item._id}>
-                          <View className="flex-row items-center py-2">
-                            {/* Мини-изображение */}
-                            <View className="w-10 h-10 bg-white rounded-lg border border-gray-100 overflow-hidden mr-3 items-center justify-center">
+                        <View key={item._id || idx}>
+                          <View className="flex-row items-start py-2">
+                            {/* Изображение */}
+                            <View className="w-[60px] h-[60px] bg-white rounded-xl overflow-hidden mr-3 items-center justify-center shrink-0">
                               {itemImage ? (
                                 <Image
                                   source={itemImage}
@@ -265,73 +262,97 @@ export default function OrdersScreen() {
                                   contentFit="contain"
                                 />
                               ) : (
-                                <Ionicons name="cube-outline" size={16} color="#E5E7EB" />
+                                <Ionicons name="cube-outline" size={20} color="#E5E7EB" />
                               )}
                             </View>
 
-                            {/* Текст */}
+                            {/* Текстовый блок */}
                             <View className="flex-1 pr-2">
-                              {brandName ? (
-                                <Text className="text-gray-400 text-[10px] font-inter-bold uppercase tracking-wider mb-0.5">
-                                  {brandName}
-                                </Text>
-                              ) : null}
-                              <Text className="text-gray-800 font-inter-medium text-[13px] leading-4" numberOfLines={1}>
+                              <Text
+                                className="text-black text-sm font-raleway-bold uppercase tracking-widest mb-0.5"
+                                numberOfLines={1}
+                              >
+                                {brandName}
+                              </Text>
+
+                              <Text
+                                className="text-black font-raleway-medium text-base tracking-wide mb-1.5 leading-4"
+                                numberOfLines={1}
+                              >
                                 {item.name}
                               </Text>
+
                               {item.volume && (
-                                <Text className="text-gray-400 text-[11px] font-inter-regular mt-0.5">
-                                  {item.volume} мл
-                                </Text>
+                                <View className="bg-white border border-gray-300 px-2 py-[2px] rounded-[5px] self-start">
+                                  <Text className="text-[9px] font-inter-semibold text-black/90 uppercase">
+                                    {item.volume} мл
+                                  </Text>
+                                </View>
                               )}
                             </View>
 
-                            {/* Количество x Цена (опционально) или просто кол-во */}
-                            <View className="items-end">
-                              <Text className="text-black font-inter-semibold text-[13px]">
-                                {item.quantity} шт.
-                              </Text>
+                            {/* Количество  */}
+                            <View className="items-end justify-start pt-0">
+                              <View className="bg-white border border-gray-200 px-2.5 py-1 rounded-lg">
+                                <Text className="text-black font-inter-medium tracking-wide text-[11px]">
+                                  x{item.quantity}
+                                </Text>
+                              </View>
                             </View>
                           </View>
 
                           {/* Разделитель */}
-                          {!isLast && <View className="h-[1px] bg-gray-200/50 ml-[52px]" />}
+                          {!isLast && <View className="h-[1px] bg-gray-200/60 ml-[62px] my-1" />}
                         </View>
                       );
                     })}
                   </View>
 
-                  {/* --- КНОПКИ ДЕЙСТВИЙ --- */}
+                  {/* --- Кнопки действий --- */}
                   {order.status === 'Доставлен' && (
                     <View className="flex-row gap-3">
-                      {/* Кнопка возврата */}
-                      <TouchableOpacity
-                        className="flex-1 flex-row items-center justify-center py-3 bg-white border border-gray-200 rounded-xl active:bg-gray-50 shadow-sm shadow-gray-100"
-                        activeOpacity={0.7}
-                        onPress={() => handleOpenReturn(order)}
-                      >
-                        <Ionicons name="reload-outline" size={16} color="#374151" style={{ marginRight: 6 }} />
-                        <Text className="text-gray-700 font-inter-semibold text-[13px]">
-                          Возврат
-                        </Text>
-                      </TouchableOpacity>
+                      {order.hasReturnRequested ? (
+                        <View className="flex-1 flex-row items-center justify-center py-3 bg-gray-50 rounded-xl border border-gray-200">
+                          <Ionicons
+                            name="time-outline"
+                            size={17}
+                            color="#9CA3AF"
+                            style={{ marginRight: 6 }}
+                          />
+                          <Text className="text-gray-400 font-inter-semibold text-base">
+                            Запрошен
+                          </Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          className="flex-1 flex-row items-center justify-center py-3 bg-white border border-gray-200 rounded-xl active:bg-gray-50 shadow-sm shadow-gray-100"
+                          activeOpacity={0.7}
+                          onPress={() => handleOpenReturn(order)}
+                        >
+                          <Ionicons name="reload-outline" size={17} style={{ marginRight: 6 }} />
+                          <Text className="text-black font-inter-semibold text-base">Возврат</Text>
+                        </TouchableOpacity>
+                      )}
 
-                      {/* Кнопка оценки */}
                       {order.hasReviewed ? (
-                        <View className="flex-[1.5] flex-row items-center justify-center py-3 bg-emerald-50 rounded-xl border border-emerald-100/50">
-                          <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                          <Text className="text-emerald-700 font-inter-semibold text-[13px] ml-1.5">
+                        <View className="flex-1 flex-row items-center justify-center py-3 bg-emerald-50 rounded-xl border border-emerald-100/50">
+                          <Ionicons name="checkmark-circle" size={17} color="#10B981" />
+                          <Text
+                            className="text-emerald-700 font-inter-semibold text-base ml-1.5"
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                          >
                             Отзыв оставлен
                           </Text>
                         </View>
                       ) : (
                         <TouchableOpacity
-                          className="flex-[1.5] flex-row items-center justify-center py-3 bg-black rounded-xl active:opacity-90 shadow-sm"
+                          className="flex-1 flex-row items-center justify-center py-3 bg-blue-500 rounded-xl active:opacity-90 shadow-sm"
                           activeOpacity={0.8}
                           onPress={() => handleOpenRating(order)}
                         >
-                          <Ionicons name="star" size={14} color="#FFFFFF" />
-                          <Text className="text-white font-inter-semibold text-[13px] ml-2">
+                          <Ionicons name="star" size={15} color="#FFFFFF" />
+                          <Text className="text-white font-inter-semibold text-base ml-2">
                             Оценить
                           </Text>
                         </TouchableOpacity>
@@ -345,7 +366,6 @@ export default function OrdersScreen() {
         )}
       </ScrollView>
 
-      {/* Модалка рейтинга */}
       <RatingModal
         visible={showRatingModal}
         onClose={() => setShowRatingModal(false)}
@@ -362,11 +382,10 @@ export default function OrdersScreen() {
         isSubmitting={isCreatingReview}
       />
 
-      {/* Модалка возврата */}
       <ReturnModal
         visible={showReturnModal}
         onClose={() => setShowReturnModal(false)}
-        orderId={selectedReturnOrder?._id || null}
+        order={selectedReturnOrder}
       />
     </SafeScreen>
   );

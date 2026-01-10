@@ -122,7 +122,6 @@ function Sidebar() {
           ref={menuRef}
           className="relative z-20 w-full border-t border-base-200 p-3 mt-auto bg-base-100"
         >
-          {/* Всплывающее меню */}
           <div
             className={`
               absolute bottom-full left-3 right-3 mb-2 

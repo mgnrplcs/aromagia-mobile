@@ -34,7 +34,7 @@ export default function AddressSelectionModal({
   const { addresses, isLoading } = useAddresses();
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
 
-  // --- АНИМАЦИЯ (Точно как в FilterModal) ---
+  // --- Анимация ---
   const panY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -55,9 +55,6 @@ export default function AddressSelectionModal({
 
   useEffect(() => {
     if (visible) {
-      // Сбрасываем выбор при открытии (опционально)
-      // setSelectedAddress(null);
-
       Animated.parallel([
         Animated.spring(panY, {
           toValue: 0,
@@ -75,7 +72,7 @@ export default function AddressSelectionModal({
     }
   }, [visible]);
 
-  // --- ЖЕСТЫ (Точно как в FilterModal) ---
+  // --- Жесты ---
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -98,7 +95,6 @@ export default function AddressSelectionModal({
     })
   ).current;
 
-  // Хелпер для иконки (из твоего AddressCard)
   const getIconName = (label: string) => {
     const l = label ? label.toLowerCase() : '';
     if (l.includes('работ') || l.includes('офис') || l.includes('work')) return 'briefcase';
@@ -115,7 +111,7 @@ export default function AddressSelectionModal({
       statusBarTranslucent
     >
       <View className="flex-1 justify-end">
-        {/* Задний фон с затемнением */}
+        {/* Затемнение */}
         <Animated.View
           className="absolute top-0 bottom-0 left-0 right-0 bg-black/40"
           style={{ opacity }}
@@ -123,7 +119,7 @@ export default function AddressSelectionModal({
           <TouchableOpacity className="flex-1" activeOpacity={1} onPress={closeModalAnimated} />
         </Animated.View>
 
-        {/* Контент модалки */}
+        {/* Шторка */}
         <Animated.View
           className="bg-white w-full overflow-hidden"
           style={{
@@ -132,7 +128,7 @@ export default function AddressSelectionModal({
             transform: [{ translateY: panY }],
           }}
         >
-          {/* Хедер с полоской для свайпа */}
+          {/* Хедер */}
           <View {...panResponder.panHandlers} className="bg-white pb-1 w-full z-10">
             <View className="items-center pt-3">
               <View className="w-10 h-1 bg-gray-300 rounded-full opacity-80" />
@@ -174,7 +170,6 @@ export default function AddressSelectionModal({
                           : 'bg-white border-gray-200 shadow-sm shadow-gray-100'
                       }`}
                     >
-                      {/* Верхняя часть карточки (Иконка + Лейбл + Бейдж) */}
                       <View className="flex-row items-center justify-between mb-3">
                         <View className="flex-row items-center gap-3">
                           <View
@@ -223,7 +218,6 @@ export default function AddressSelectionModal({
                 })}
               </View>
             ) : (
-              // Пустое состояние
               <View className="py-10 items-center justify-center">
                 <View className="w-16 h-16 bg-gray-50 rounded-full items-center justify-center mb-4">
                   <Ionicons name="location-outline" size={32} color="#9CA3AF" />

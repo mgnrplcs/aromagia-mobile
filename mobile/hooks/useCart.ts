@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from '@/lib/api';
 import { Cart } from '@/types';
+import { toast } from 'sonner-native';
 
 const useCart = () => {
   const api = useApi();
@@ -22,7 +23,15 @@ const useCart = () => {
 
   // Добавить товар в корзину
   const addToCartMutation = useMutation({
-    mutationFn: async ({ productId, quantity = 1, volume }: { productId: string; quantity?: number; volume?: number }) => {
+    mutationFn: async ({
+      productId,
+      quantity = 1,
+      volume,
+    }: {
+      productId: string;
+      quantity?: number;
+      volume?: number;
+    }) => {
       const { data } = await api.post<{ cart: Cart }>('/cart', { productId, quantity, volume });
       return data.cart;
     },
@@ -31,7 +40,15 @@ const useCart = () => {
 
   // Обновить количество товара
   const updateQuantityMutation = useMutation({
-    mutationFn: async ({ productId, quantity, volume }: { productId: string; quantity: number; volume?: number }) => {
+    mutationFn: async ({
+      productId,
+      quantity,
+      volume,
+    }: {
+      productId: string;
+      quantity: number;
+      volume?: number;
+    }) => {
       const { data } = await api.put<{ cart: Cart }>(`/cart/${productId}`, { quantity, volume });
       return data.cart;
     },
@@ -66,7 +83,7 @@ const useCart = () => {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
     onError: (error: any) => {
-      throw error;
+      toast.error(error.response?.data?.error || 'Неверный купон');
     },
   });
 
@@ -77,6 +94,9 @@ const useCart = () => {
       return data.cart;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Не удалось удалить купон');
+    },
   });
 
   // === Расчеты ===
@@ -103,7 +123,6 @@ const useCart = () => {
     discountAmount,
     cartItemCount,
 
-    // Методы
     refetch,
     addToCart: addToCartMutation.mutate,
     updateQuantity: updateQuantityMutation.mutate,
@@ -112,7 +131,6 @@ const useCart = () => {
     applyCoupon: applyCouponMutation.mutate,
     removeCoupon: removeCouponMutation.mutate,
 
-    // Состояния загрузки
     isAddingToCart: addToCartMutation.isPending,
     isUpdating: updateQuantityMutation.isPending,
     isRemoving: removeFromCartMutation.isPending,

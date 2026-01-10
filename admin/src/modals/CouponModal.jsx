@@ -9,7 +9,6 @@ import {
   Info,
 } from "lucide-react";
 
-// === CSS стили для инпутов ===
 const customStyles = `
   /* Убираем стрелочки у input type="number" */
   input[type=number]::-webkit-inner-spin-button, 
@@ -44,7 +43,6 @@ export default function CouponModal({
 }) {
   const dateInputRef = useRef(null);
 
-  // Состояния полей
   const [code, setCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState("");
   const [validUntil, setValidUntil] = useState("");
@@ -92,7 +90,6 @@ export default function CouponModal({
     onSubmit(data);
   };
 
-  // Функция для открытия календаря при клике на див-обертку
   const openDatePicker = () => {
     if (dateInputRef.current) {
       dateInputRef.current.showPicker();
@@ -103,7 +100,6 @@ export default function CouponModal({
 
   return (
     <>
-      {/* Вставляем стили */}
       <style>{customStyles}</style>
 
       <div className="modal modal-open modal-bottom sm:modal-middle tracking-wide">
@@ -175,7 +171,6 @@ export default function CouponModal({
                 <label className="label font-bold text-sm text-base-content/80 mb-1">
                   Действует до
                 </label>
-                {/* Добавил onClick на wrapper для удобства */}
                 <div
                   className="relative cursor-pointer"
                   onClick={openDatePicker}
@@ -188,7 +183,6 @@ export default function CouponModal({
                     onChange={(e) => setValidUntil(e.target.value)}
                     required
                   />
-                  {/* Иконка теперь слева для красоты (опционально), или оставляем справа но делаем её pointer-events-none */}
                   <div className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none">
                     <Calendar
                       className="w-4 h-4 text-base-content/40"
@@ -263,10 +257,11 @@ export default function CouponModal({
             <div className="bg-base-200/50 p-4 rounded-xl border border-base-200 flex items-center justify-between mt-2">
               <div className="flex gap-3 items-center">
                 <div
-                  className={`p-2.5 rounded-xl ${isActive
-                    ? "bg-success/10 text-success"
-                    : "bg-base-300 text-base-content/40"
-                    }`}
+                  className={`p-2.5 rounded-xl ${
+                    isActive
+                      ? "bg-success/10 text-success"
+                      : "bg-base-300 text-base-content/40"
+                  }`}
                 >
                   <Info className="w-5 h-5" />
                 </div>

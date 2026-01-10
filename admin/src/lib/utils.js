@@ -23,7 +23,7 @@ export const getReturnStatusColor = (status) => {
     case "Возврат выполнен":
       return "text-primary";
     case "Отклонено":
-      return "text-error";
+      return "text-secondary";
     default:
       return "text-base-content";
   }

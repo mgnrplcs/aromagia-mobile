@@ -10,16 +10,17 @@ import {
   Filter,
   ShoppingBag,
   User,
+  Image as ImageIcon,
 } from "lucide-react";
 import { returnApi } from "../lib/api";
 import { formatDate, getReturnStatusColor } from "../lib/utils";
 import PageLoader from "../components/PageLoader";
+import ReturnDetailsModal from "../modals/ReturnDetailsModal";
 
-// Опции статусов согласно вашей схеме Mongoose
 const RETURN_STATUS_OPTIONS = [
   { value: "Ожидает рассмотрения", label: "Ожидает рассмотрения" },
-  { value: "Одобрено", label: "Одобрено" },
-  { value: "Отклонено", label: "Отклонено" },
+  { value: "Одобрено", label: "Возврат одобрен" },
+  { value: "Отклонено", label: "Возврат отклонён" },
   { value: "Возврат выполнен", label: "Возврат выполнен" },
 ];
 
@@ -28,7 +29,9 @@ function ReturnsPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
 
-  // --- Загрузка ---
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedReturn, setSelectedReturn] = useState(null);
+
   const { data: returnsData, isLoading } = useQuery({
     queryKey: ["returns"],
     queryFn: async () => {
@@ -37,7 +40,6 @@ function ReturnsPage() {
     },
   });
 
-  // --- Мутация статуса ---
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }) => {
       const token = await getToken();
@@ -56,9 +58,18 @@ function ReturnsPage() {
     updateStatusMutation.mutate({ id, status: newStatus });
   };
 
+  const handleOpenDetails = (item) => {
+    setSelectedReturn(item);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleCloseDetails = () => {
+    setIsDetailsModalOpen(false);
+    setSelectedReturn(null);
+  };
+
   const returns = Array.isArray(returnsData) ? returnsData : [];
 
-  // --- Фильтрация ---
   const filteredReturns = returns.filter((item) => {
     const searchLower = searchTerm.toLowerCase();
     const returnId = item._id ? item._id.slice(-6).toLowerCase() : "";
@@ -123,31 +134,28 @@ function ReturnsPage() {
               <table className="table table-lg whitespace-nowrap">
                 <thead className="bg-base-200/50 text-base-content/70">
                   <tr>
-                    <th className="w-px">ID возврата</th>
-                    <th className="max-w-50 w-[20%]">Клиент</th>
-                    <th>Дата</th>
+                    <th className="w-38">ID возврата</th>
+                    <th className="w-75">Клиент</th>
+                    <th className="w-52">Дата</th>
                     <th>Заказ</th>
-                    <th>Причина</th>
+                    <th>Причина / Товары</th>
                     <th>Статус</th>
+                    <th>Подробности</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredReturns.map((item) => {
                     const customer = item.user || {};
                     const order = item.order || {};
-
-                    // Формируем имя
                     let displayName = "Аноним";
                     if (customer.firstName || customer.lastName) {
                       displayName = `${customer.firstName || ""} ${
                         customer.lastName || ""
                       }`.trim();
                     }
-
                     const isUpdating =
                       updateStatusMutation.isPending &&
                       updateStatusMutation.variables?.id === item._id;
-
                     const statusColor = getReturnStatusColor(item.status);
 
                     return (
@@ -197,8 +205,8 @@ function ReturnsPage() {
                         {/* 3. Дата */}
                         <td>
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-base-200 flex items-center justify-center shrink-0">
-                              <Calendar className="w-4 h-4 text-base-content/70" />
+                            <div className="w-10 h-10 rounded-full bg-base-200 flex items-center justify-center shrink-0">
+                              <Calendar className="w-5 h-5 text-base-content/70" />
                             </div>
                             <div className="flex flex-col">
                               <span className="font-medium text-sm">
@@ -215,21 +223,28 @@ function ReturnsPage() {
                           </div>
                         </td>
 
-                        {/* 4. Заказ (Ссылка) */}
+                        {/* 4. Заказ */}
                         <td>
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-base-200 flex items-center justify-center shrink-0">
-                              <ShoppingBag className="w-4 h-4 text-base-content/70" />
+                            <div className="w-10 h-10 rounded-full bg-base-200 flex items-center justify-center shrink-0">
+                              <ShoppingBag className="w-5 h-5 text-base-content/70" />
                             </div>
                             {order._id ? (
                               <div className="flex flex-col">
-                                <span className="font-semibold text-sm">
+                                <Link
+                                  to={`/orders?search=${order._id
+                                    .slice(-6)
+                                    .toUpperCase()}`}
+                                  className="font-semibold text-sm hover:text-primary hover:underline transition-colors flex items-center gap-1"
+                                >
                                   #{order._id.slice(-6).toUpperCase()}
-                                </span>
+                                </Link>
                                 <span className="text-xs text-base-content/50">
                                   {order.totalPrice
-                                    ? `${order.totalPrice.toLocaleString()} ₽`
-                                    : "Сумма скрыта"}
+                                    ? `${order.totalPrice.toLocaleString(
+                                        "ru-RU"
+                                      )} ₽`
+                                    : "0 ₽"}
                                 </span>
                               </div>
                             ) : (
@@ -240,41 +255,39 @@ function ReturnsPage() {
                           </div>
                         </td>
 
-                        {/* 5. Причина */}
+                        {/* 5. Причина  */}
                         <td>
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-base-200 flex items-center justify-center shrink-0">
-                              <FileText className="w-4 h-4 text-primary" />
+                            <div className="w-10 h-10 rounded-full bg-base-200 flex items-center justify-center shrink-0">
+                              <FileText className="w-5 h-5 text-primary" />
                             </div>
                             <div className="flex flex-col max-w-xs">
-                              <span
-                                className="font-medium text-sm truncate"
-                                title={item.reason}
-                              >
+                              <span className="font-bold text-sm truncate">
                                 {item.reason}
                               </span>
-                              {item.details && (
-                                <span
-                                  className="text-xs text-base-content/50 truncate"
-                                  title={item.details}
-                                >
-                                  {item.details}
-                                </span>
-                              )}
+                              <span
+                                className="text-xs text-base-content/50 truncate"
+                                title={item.reason}
+                              >
+                                {item.items?.[0]?.product?.name ||
+                                  "Товар удален"}
+                                {item.items?.length > 1 &&
+                                  `, (+${item.items.length - 1})`}
+                              </span>
                             </div>
                           </div>
                         </td>
 
                         {/* 6. Статус */}
                         <td>
-                          <div className="relative w-fit">
+                          <div className="relative w-full">
                             <select
                               value={item.status}
                               onChange={(e) =>
                                 handleStatusChange(item._id, e.target.value)
                               }
                               disabled={isUpdating}
-                              className={`select select-sm select-bordered font-bold tracking-wide focus:outline-none pr-8 ${statusColor}`}
+                              className={`select select-sm select-bordered w-full font-bold tracking-wide focus:outline-none pr-8 ${statusColor}`}
                             >
                               {RETURN_STATUS_OPTIONS.map((opt) => (
                                 <option
@@ -294,6 +307,21 @@ function ReturnsPage() {
                             )}
                           </div>
                         </td>
+                        {/* 7. Подробности */}
+                        <td className="sticky right-0 z-10 bg-base-100 group-hover:bg-base-50 text-center">
+                          <button
+                            onClick={() => handleOpenDetails(item)}
+                            className="btn btn-sm btn-ghost border border-base-300 hover:border-primary hover:text-primary gap-2.5 rounded-lg"
+                          >
+                            <ImageIcon className="w-4 h-4" />
+                            Просмотр
+                            {item.images?.length > 0 && (
+                              <span className="badge badge-primary badge-sm text-[11px] px-1.5 h-4 w-4">
+                                {item.images.length}
+                              </span>
+                            )}
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -303,6 +331,13 @@ function ReturnsPage() {
           )}
         </div>
       </div>
+
+      <ReturnDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={handleCloseDetails}
+        images={selectedReturn?.images}
+        details={selectedReturn?.details}
+      />
     </div>
   );
 }

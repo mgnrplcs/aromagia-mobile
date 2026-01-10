@@ -23,14 +23,11 @@ function ProductsPage() {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
 
-  // Состояние поиска
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Состояние модалки формы (Create/Edit)
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
-  // Состояние модалки удаления
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
 
@@ -51,8 +48,6 @@ function ProductsPage() {
       return brandApi.getAll(token);
     },
   });
-
-  // --- Мутации ---
 
   const createProductMutation = useMutation({
     mutationFn: async (formData) => {
@@ -89,8 +84,6 @@ function ProductsPage() {
     },
     onError: (err) => alert(err.message),
   });
-
-  // --- Хендлеры UI ---
 
   const handleOpenCreateModal = () => {
     setEditingProduct(null);
@@ -138,7 +131,6 @@ function ProductsPage() {
     createProductMutation.isPending || updateProductMutation.isPending;
   const isDeleting = deleteProductMutation.isPending;
 
-  // Фильтрация
   const filteredProducts = products.filter(
     (p) =>
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -178,12 +170,10 @@ function ProductsPage() {
             <SearchIcon className="w-4 h-4 absolute left-3.5 top-3 text-base-content/50" />
           </div>
 
-          {/* Кнопка фильтра */}
           <button className="btn btn-square btn-ghost border border-base-200">
             <Filter className="w-5 h-5 text-base-content" />
           </button>
 
-          {/* Кнопка добавления */}
           <button
             onClick={handleOpenCreateModal}
             className="btn btn-outline btn-primary gap-1.5"
@@ -202,7 +192,6 @@ function ProductsPage() {
           </div>
         ) : (
           filteredProducts.map((product) => {
-            // -- Логика отображения вариантов --
             const variants = product.variants || [];
             const hasVariants = variants.length > 0;
 
@@ -211,7 +200,7 @@ function ProductsPage() {
             let displayVolume = "—";
 
             if (hasVariants) {
-              // 1. Цена 
+              // 1. Цена
               const prices = variants.map((v) => v.price).filter((p) => !!p);
               if (prices.length > 0) {
                 const min = Math.min(...prices);
@@ -220,18 +209,18 @@ function ProductsPage() {
                   min === max
                     ? `${min.toLocaleString("ru-RU")} ₽`
                     : `${min.toLocaleString("ru-RU")} – ${max.toLocaleString(
-                      "ru-RU"
-                    )} ₽`;
+                        "ru-RU"
+                      )} ₽`;
               }
 
-              // 2. Склад 
+              // 2. Склад
               const totalStock = variants.reduce(
                 (acc, v) => acc + (v.stock || 0),
                 0
               );
               displayStock = `${totalStock} шт.`;
 
-              // 3. Объем 
+              // 3. Объем
               displayVolume =
                 variants
                   .map((v) => v.volume)
@@ -251,14 +240,13 @@ function ProductsPage() {
               >
                 <div className="card-body p-5">
                   <div className="flex flex-col sm:flex-row gap-5 items-center sm:items-start">
-                    {/* Аватар + Рейтинг */}
+                    {/* Изображение */}
                     <div className="shrink-0 flex flex-col items-center gap-2">
-                      <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl ring-1 ring-base-200 bg-base-50 flex items-center justify-center overflow-hidden">
-                        {/* Бейджик ХИТ  */}
+                      <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg ring-1 ring-base-200 bg-base-50 flex items-center justify-center overflow-hidden">
+                        {/* Бейджик ХИТ */}
                         {product.isBestseller && (
-                          <div className="absolute top-1.25 left-1.5 z-10 rounded-md badge badge-secondary text-white tracking-widest text-[8px] h-5 px-2 font-bold gap-1 shadow-sm border-none">
-                            <Zap className="w-2 h-2 fill-current" />
-                            ХИТ
+                          <div className="absolute top-1.5 left-1.5 z-10">
+                            <Zap className="w-4 h-4 text-secondary fill-current" />
                           </div>
                         )}
                         {product.images?.[0] ? (
@@ -272,7 +260,7 @@ function ProductsPage() {
                         )}
                       </div>
 
-                      {/* Рейтинг (звездочки) */}
+                      {/* Рейтинг */}
                       <div
                         className="flex items-center gap-1 bg-base-100"
                         title={`Рейтинг: ${product.averageRating || 0}`}
@@ -280,10 +268,11 @@ function ProductsPage() {
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
                             key={star}
-                            className={`w-3.5 h-3.5 ${(product.averageRating || 0) >= star
-                              ? "fill-base-200 text-white"
-                              : "fill-base-300 text-base-300"
-                              }`}
+                            className={`w-3.5 h-3.5 ${
+                              (product.averageRating || 0) >= star
+                                ? "fill-base-200 text-white"
+                                : "fill-base-300 text-base-300"
+                            }`}
                           />
                         ))}
                       </div>
@@ -327,7 +316,6 @@ function ProductsPage() {
                           <p className="text-[11px] opacity-60 font-bold uppercase tracking-widest">
                             Цена
                           </p>
-                          {/* Шрифт extrabold для большей жирности */}
                           <p className="font-extrabold text-lg">
                             {displayPrice}
                           </p>
@@ -351,7 +339,7 @@ function ProductsPage() {
                       </div>
                     </div>
 
-                    {/* Действия (Кнопки) */}
+                    {/* Действия */}
                     <div className="flex flex-row items-center gap-2 mt-2 sm:mt-0 sm:self-center">
                       <button
                         className="btn btn-square btn-ghost border border-base-200 hover:border-primary hover:text-primary"
@@ -376,7 +364,6 @@ function ProductsPage() {
         )}
       </div>
 
-      {/* Модалки */}
       <ProductFormModal
         isOpen={isFormModalOpen}
         onClose={handleCloseFormModal}

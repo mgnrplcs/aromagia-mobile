@@ -8,6 +8,9 @@ import {
   addToWishlist,
   removeFromWishlist,
 } from "../controllers/user.controller.js";
+
+import { getAvailableCoupons } from "../controllers/coupon.controller.js";
+
 import { protectRoute } from "../middleware/auth.middleware.js";
 
 const router = Router();
@@ -24,6 +27,9 @@ router.delete("/addresses/:addressId", deleteAddress);
 router.post("/wishlist", addToWishlist);
 router.get("/wishlist", getWishlist);
 router.delete("/wishlist/:productId", removeFromWishlist);
+
+// 🎫 Промокоды
+router.get("/coupons", getAvailableCoupons);
 
 // 🛡️ Проверка роли
 router.get("/me", (req, res) => {

@@ -19,7 +19,6 @@ export default function DeleteCustomerModal({
       role="dialog"
     >
       <div className="modal-box p-0 w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl bg-base-100">
-        {/* Кнопка закрытия */}
         <button
           onClick={onClose}
           className="btn btn-sm btn-circle btn-ghost absolute right-3 top-3 z-10 hover:bg-base-200"
@@ -29,7 +28,6 @@ export default function DeleteCustomerModal({
         </button>
 
         <div className="flex flex-col items-center text-center p-8 pb-6">
-          {/* 1. Главная иконка: Только Корзина */}
           <div className="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mb-5 ring-8 ring-error/5">
             <Trash2Icon className="w-8 h-8 text-error" strokeWidth={2} />
           </div>
@@ -42,7 +40,6 @@ export default function DeleteCustomerModal({
             Вы собираетесь удалить пользователя:
           </div>
 
-          {/* 2. Карточка клиента: Аватар слева + Данные */}
           <div className="mt-4 w-full bg-base-200/50 border border-base-200 rounded-xl p-3 flex items-center gap-3 text-left">
             {/* Аватар */}
             <div className="shrink-0">
@@ -70,7 +67,7 @@ export default function DeleteCustomerModal({
             </div>
           </div>
 
-          {/* 3. Предупреждение */}
+          {/* Предупреждение */}
           <div className="mt-5 flex items-start gap-2.5 text-xs font-medium text-warning bg-warning/10 px-3 py-2 rounded-lg text-left w-full">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>Это действие нельзя будет отменить</span>

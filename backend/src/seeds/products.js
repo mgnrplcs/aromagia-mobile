@@ -11,7 +11,6 @@ import { ENV } from "../config/env.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Пути к папкам с картинками (images/brands и images/perfumes)
 const BRANDS_PATH = path.join(__dirname, "images", "brands");
 const PERFUMES_PATH = path.join(__dirname, "images", "perfumes");
 
@@ -53,7 +52,6 @@ const seedDatabase = async () => {
     // ==========================================
     console.log("\n⏳ Загружаем бренды из images/brands...");
 
-    // Точное соответствие имен файлов, которые ты прислал
     const brandsList = [
       { name: "Dior", file: "dior.jpg" },
       { name: "Chanel", file: "chanel.jpg" },

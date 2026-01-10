@@ -40,9 +40,9 @@ export async function createPaymentIntent(req, res) {
       const stock = variant ? variant.stock : product.stock;
 
       if (stock < item.quantity) {
-        return res
-          .status(400)
-          .json({ error: `Недостаточно товара "${product.name}" (${item.volume} мл) на складе` });
+        return res.status(400).json({
+          error: `Недостаточно товара "${product.name}" (${item.volume} мл) на складе`,
+        });
       }
 
       serverSubtotal += unitPrice * item.quantity;
@@ -51,15 +51,13 @@ export async function createPaymentIntent(req, res) {
     // 3. Логика Купона
     let discountAmount = 0;
     if (cart.coupon && cart.coupon.isActive) {
-      // Проверяем валидность купона еще раз
       const isValid = cart.coupon.isValid(serverSubtotal);
       if (isValid) {
         discountAmount = cart.coupon.discountAmount;
       }
     }
 
-    // 4. Итоговая сумма
-    // Доставка: допустим бесплатно от 5000р, иначе 300р
+    // 4. Итоговая сумма: бесплатно от 5000р, иначе 300р
     const shippingPrice = serverSubtotal > 5000 ? 0 : 300;
 
     let total = serverSubtotal - discountAmount + shippingPrice;
@@ -99,7 +97,6 @@ export async function createPaymentIntent(req, res) {
       automatic_payment_methods: {
         enabled: true,
       },
-      // В metadata кладем ID корзины, чтобы вебхук знал, что превращать в заказ
       metadata: {
         userId: user._id.toString(),
         clerkId: user.clerkId,
@@ -118,7 +115,7 @@ export async function createPaymentIntent(req, res) {
       shippingPrice,
     });
   } catch (error) {
-    console.error("Ошибка createPaymentIntent:", error);
+    console.error("💥 Ошибка createPaymentIntent:", error);
     res.status(500).json({ error: "Не удалось инициализировать оплату" });
   }
 }
@@ -177,7 +174,9 @@ export async function handleWebhook(req, res) {
 
       // Формируем товары для заказа с учетом вариантов
       const orderItems = cart.items.map((item) => {
-        const variant = item.product.variants?.find((v) => v.volume === item.volume);
+        const variant = item.product.variants?.find(
+          (v) => v.volume === item.volume
+        );
         const unitPrice = variant ? variant.price : item.product.price;
 
         return {
@@ -216,7 +215,7 @@ export async function handleWebhook(req, res) {
             { $inc: { "variants.$.stock": -item.quantity } }
           );
         } else {
-          // Уменьшаем общий сток (legacy)
+          // Уменьшаем общий сток
           await Product.findByIdAndUpdate(item.product, {
             $inc: { stock: -item.quantity },
           });
@@ -232,11 +231,10 @@ export async function handleWebhook(req, res) {
 
       // 6. Очищаем корзину
       await Cart.findByIdAndDelete(cartId);
-      // Или: cart.items = []; cart.coupon = null; await cart.save();
 
       console.log("✅ Заказ успешно создан:", order._id);
     } catch (error) {
-      console.error("Ошибка при создании заказа из вебхука:", error);
+      console.error("💥 Ошибка при создании заказа из вебхука:", error);
     }
   }
 

@@ -5,7 +5,7 @@ import { handleWebhook as handleStripeWebhook } from "../controllers/payment.con
 
 const router = express.Router();
 
-// 1. Clerk Webhook
+// 1) Clerk Webhook
 router.post(
   "/clerk",
   express.raw({ type: "application/json" }),
@@ -22,7 +22,6 @@ router.post(
       const svix_timestamp = req.headers["svix-timestamp"];
       const svix_signature = req.headers["svix-signature"];
 
-      // Логируем попытку входа (поможет понять, доходит ли запрос)
       console.log(`📥 [Webhook] Получен запрос от Clerk. ID: ${svix_id}`);
 
       if (!svix_id || !svix_timestamp || !svix_signature) {
@@ -44,14 +43,12 @@ router.post(
         console.error("💥 Ошибка: Подпись не совпала:", err.message);
         return res.status(400).send("Webhook verification failed");
       }
-
-      // 2. Логирование события
       const { id, type } = evt;
       console.log(
         `✅ [Webhook] Подпись OK. Событие: ${type}, User ID: ${evt.data.id}`
       );
 
-      // 3. Отправка в Inngest
+      // 2. Отправка в Inngest
       try {
         await inngest.send({
           name: `clerk/${type}`,
@@ -70,7 +67,7 @@ router.post(
   }
 );
 
-// 2. Stripe Webhook
+// 2) Stripe Webhook
 router.post(
   "/stripe",
   express.raw({ type: "application/json" }),

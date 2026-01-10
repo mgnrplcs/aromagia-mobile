@@ -39,8 +39,6 @@ const cartSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    // toJSON: { virtuals: true } заставляет Mongoose включать поля,
-    // которых нет в базе, но есть в коде (subtotal, totalPrice), в ответ сервера.
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
@@ -57,7 +55,9 @@ cartSchema.virtual("subtotal").get(function () {
       let price = item.product.price || 0;
 
       if (item.product.variants && item.product.variants.length > 0) {
-        const variant = item.product.variants.find(v => v.volume === item.volume);
+        const variant = item.product.variants.find(
+          (v) => v.volume === item.volume
+        );
         if (variant) {
           price = variant.price;
         }

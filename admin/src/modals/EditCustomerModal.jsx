@@ -36,13 +36,11 @@ export default function EditCustomerModal({
     }
   }, [customer, isOpen]);
 
-  // === Маска телефона ===
   const handlePhoneChange = (e) => {
     const formatted = formatPhoneNumber(e.target.value);
     setFormData({ ...formData, phone: formatted });
   };
 
-  // === Логика фото ===
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -99,9 +97,7 @@ export default function EditCustomerModal({
           onSubmit={handleSubmit}
           className="p-6 space-y-6 overflow-y-auto max-h-[80vh]"
         >
-          {/* === Секция 1: Фото профиля === */}
           <div className="flex items-center gap-5 p-4 bg-base-200/40 rounded-xl border border-base-200">
-            {/* Аватар */}
             <div className="shrink-0">
               <div className="w-20 h-20 rounded-full border border-base-300 bg-base-100 overflow-hidden flex items-center justify-center">
                 {imagePreview ? (
@@ -116,7 +112,6 @@ export default function EditCustomerModal({
               </div>
             </div>
 
-            {/* Кнопки управления */}
             <div className="flex flex-col gap-2 w-full">
               <label className="font-bold text-sm text-base-content/80">
                 Фотография
@@ -196,7 +191,6 @@ export default function EditCustomerModal({
             </div>
           </div>
 
-          {/* === Секция 3: Телефон и Роль === */}
           <div className="grid grid-cols-2 gap-4">
             {/* Телефон */}
             <div className="form-control">
@@ -242,8 +236,7 @@ export default function EditCustomerModal({
               </div>
             </div>
           </div>
-
-          {/* === Секция 4: Email === */}
+          {/* Email */}
           <div className="form-control w-full">
             <label className="label font-bold text-sm text-base-content/80 mb-1">
               Email

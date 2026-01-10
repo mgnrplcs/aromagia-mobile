@@ -25,7 +25,6 @@ import PageLoader from '@/components/PageLoader';
 import ErrorState from '@/components/ErrorState';
 import { useStripe } from '@stripe/stripe-react-native';
 
-// Импорт модалок
 import RemoveItemModal from '@/components/modals/DeleteFromCartModal';
 import ClearCartModal from '@/components/modals/ClearCartModal';
 
@@ -74,7 +73,7 @@ const CartScreen = () => {
     isUpdating,
     removeFromCart,
     updateQuantity,
-    refetch = async () => { },
+    refetch = async () => {},
   } = useCart();
 
   const { addresses } = useAddresses();
@@ -83,24 +82,22 @@ const CartScreen = () => {
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Modals state
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ product: Product; volume?: number } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ product: Product; volume?: number } | null>(
+    null
+  );
   const [clearCartModalVisible, setClearCartModalVisible] = useState(false);
 
   // Промокод
   const [promoCode, setPromoCode] = useState('');
-  // const [discount, setDiscount] = useState(0); 
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
   const cartItems = cart?.items || [];
 
-  // Calc
   const subtotal = cart?.subtotal || 0;
   const shippingThreshold = 5000;
   const shippingCost = subtotal > shippingThreshold ? 0 : 300;
 
-  // Backend totalPrice includes coupon discount if valid
   const backendTotal = cart?.totalPrice || 0;
   const effectiveDiscount = subtotal - backendTotal;
 
@@ -112,7 +109,12 @@ const CartScreen = () => {
     setRefreshing(false);
   }, [refetch]);
 
-  const handleQuantityChange = (productId: string, currentQuantity: number, change: number, volume?: number) => {
+  const handleQuantityChange = (
+    productId: string,
+    currentQuantity: number,
+    change: number,
+    volume?: number
+  ) => {
     const newQuantity = currentQuantity + change;
     if (newQuantity < 1) return;
     updateQuantity({ productId, quantity: newQuantity, volume });
@@ -265,9 +267,9 @@ const CartScreen = () => {
 
   return (
     <SafeScreen>
-      {/* HEADER */}
-      <View className="px-6 pt-6 pb-4 bg-white flex-row items-center justify-between border-b border-gray-50">
-        <Text className="text-black text-3xl font-raleway-bold tracking-tight">Корзина</Text>
+      {/* Шапка */}
+      <View className="px-6 pt-2 pb-4 bg-white flex-row items-center justify-between border-b border-gray-50">
+        <Text className="text-black text-3xl font-raleway-semibold tracking-wide">Корзина</Text>
         <View className="bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
           <Text className="text-primary text-sm font-inter-semibold tracking-wide">
             {cartItemCount} {getDeclension(cartItemCount, ['товар', 'товара', 'товаров'])}
@@ -304,14 +306,14 @@ const CartScreen = () => {
           </View>
         ) : (
           <>
-            {/* ТОВАРЫ */}
+            {/* Товары */}
             <View className="px-6 gap-4">
               {cartItems.map((item) => {
                 const product = item.product as Product;
                 return (
                   <View
                     key={item._id || product._id}
-                    className="bg-white rounded-3xl p-4 border border-gray-100 flex-row"
+                    className="bg-white rounded-xl p-4 border border-gray-100 flex-row"
                   >
                     <View className="relative">
                       <Image
@@ -339,13 +341,13 @@ const CartScreen = () => {
                         </View>
 
                         <Text
-                          className="text-black font-raleway-medium text-lg -mt-2.5 mb-1"
+                          className="text-black font-raleway-medium text-lg -mt-3 mb-0.5"
                           numberOfLines={1}
                         >
                           {product.name}
                         </Text>
-                        <View className="bg-black self-start px-2 py-1 rounded-md mb-2.5 shadow-sm">
-                          <Text className="text-white text-[9px] font-inter-extrabold tracking-wide uppercase">
+                        <View className="bg-white border border-gray-300 px-2 py-1 rounded-md self-start mr-1.5">
+                          <Text className="text-[9px] font-inter-semibold text-black/85 uppercase">
                             {item.volume || product.volume} МЛ
                           </Text>
                         </View>
@@ -359,12 +361,12 @@ const CartScreen = () => {
 
                             return (
                               <>
-                                <Text className="text-black font-inter-bold text-lg">
+                                <Text className="text-black font-inter-semibold text-lg">
                                   {formatPrice(unitPrice * item.quantity)}
                                 </Text>
 
                                 {item.quantity > 1 && (
-                                  <Text className="text-gray-500/75 text-sm font-inter">
+                                  <Text className="text-gray-500/75 -mt-0.5 text-sm font-inter">
                                     {formatPrice(unitPrice)} / шт.
                                   </Text>
                                 )}
@@ -376,7 +378,9 @@ const CartScreen = () => {
                         <View className="flex-row items-center bg-gray-50 rounded-full p-1 border border-gray-100">
                           <TouchableOpacity
                             className="w-7 h-7 items-center justify-center bg-white rounded-full shadow-sm"
-                            onPress={() => handleQuantityChange(product._id, item.quantity, -1, item.volume)}
+                            onPress={() =>
+                              handleQuantityChange(product._id, item.quantity, -1, item.volume)
+                            }
                             disabled={isUpdating}
                           >
                             <Ionicons name="remove" size={14} color="#111827" />
@@ -394,7 +398,9 @@ const CartScreen = () => {
 
                           <TouchableOpacity
                             className="w-7 h-7 items-center justify-center bg-white rounded-full shadow-sm"
-                            onPress={() => handleQuantityChange(product._id, item.quantity, 1, item.volume)}
+                            onPress={() =>
+                              handleQuantityChange(product._id, item.quantity, 1, item.volume)
+                            }
                             disabled={isUpdating}
                           >
                             <Ionicons name="add" size={14} color="#111827" />
@@ -407,13 +413,19 @@ const CartScreen = () => {
               })}
             </View>
 
-            {/* СВОДКА */}
+            {/* Сводка */}
             <View className="mx-6 mt-5 mb-4">
               <View className="bg-white rounded-[20px] p-5 border border-gray-100 shadow-sm z-10">
-                {effectiveDiscount > 0 && <ReceiptRow label="Подытог" value={formatPrice(subtotal)} />}
+                {effectiveDiscount > 0 && (
+                  <ReceiptRow label="Подытог" value={formatPrice(subtotal)} />
+                )}
                 {effectiveDiscount > 0 && (
                   <View className="mb-2">
-                    <ReceiptRow label="Скидка" value={`- ${formatPrice(effectiveDiscount)}`} isDiscount />
+                    <ReceiptRow
+                      label="Скидка"
+                      value={`- ${formatPrice(effectiveDiscount)}`}
+                      isDiscount
+                    />
                     <View className="h-[1px] bg-gray-100 my-3" />
                   </View>
                 )}
@@ -476,7 +488,7 @@ const CartScreen = () => {
         )}
       </ScrollView>
 
-      {/* FOOTER BUTTON */}
+      {/* Футер */}
       {cartItems.length > 0 && (
         <View className="absolute bottom-28 left-0 right-0 px-6 z-50">
           <TouchableOpacity
@@ -502,7 +514,6 @@ const CartScreen = () => {
         </View>
       )}
 
-      {/* МОДАЛКИ */}
       <RemoveItemModal
         visible={deleteModalVisible}
         onClose={() => setDeleteModalVisible(false)}

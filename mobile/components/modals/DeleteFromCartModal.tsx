@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { Brand, Product } from '@/types'; // Убедись, что путь к типам верный
+import { Brand, Product } from '@/types';
 
 interface RemoveItemModalProps {
   visible: boolean;
@@ -21,7 +21,6 @@ export default function RemoveItemModal({
 }: RemoveItemModalProps) {
   if (!product) return null;
 
-  // Хелпер для бренда (как в твоем примере)
   const getBrandName = (item: Product) => {
     if (item.brand && typeof item.brand === 'object' && 'name' in item.brand) {
       return (item.brand as Brand).name;
@@ -58,20 +57,20 @@ export default function RemoveItemModal({
               />
               <View className="ml-3.5 flex-1">
                 <Text
-                  className="text-black text-[13px] tracking-wider font-raleway-bold uppercase"
+                  className="text-black text-sm tracking-wider font-raleway-bold uppercase"
                   numberOfLines={1}
                 >
                   {getBrandName(product)}
                 </Text>
                 <Text
-                  className="text-black text-base tracking-wide font-raleway-medium"
+                  className="text-black text-base tracking-wide font-raleway-medium -mt-0.5 mb-0.5"
                   numberOfLines={1}
                 >
                   {product.name}
                 </Text>
                 {volume && (
-                  <View className="bg-black self-start px-1.5 py-0.5 rounded-md mt-1 shadow-sm">
-                    <Text className="text-white text-[8px] font-inter-extrabold tracking-wide uppercase">
+                  <View className="bg-white border border-gray-300 px-2 py-1 rounded-md self-start mr-1.5">
+                    <Text className="text-[9px] font-inter-semibold text-black/85 uppercase">
                       {volume} МЛ
                     </Text>
                   </View>

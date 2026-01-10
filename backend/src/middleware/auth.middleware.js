@@ -17,7 +17,7 @@ export const protectRoute = [
       // 1. Пробуем найти пользователя по Clerk ID
       let user = await User.findOne({ clerkId: userId });
 
-      // 2. Если пользователя НЕТ, запускаем механизм самовосстановления (JIT)
+      // 2. Если пользователя НЕТ, запускаем механизм самовосстановления
       if (!user) {
         console.log(
           `⚠️ [ProtectRoute] Пользователь ${userId} не найден. Пытаемся синхронизировать...`
@@ -41,7 +41,7 @@ export const protectRoute = [
           email.toLowerCase() === ENV.ADMIN_EMAIL.toLowerCase();
 
         if (user) {
-          // СИТУАЦИЯ КАК У ТЕБЯ СЕЙЧАС: Пользователь найден по почте, но ID устарел
+          // Пользователь найден по почте, но ID устарел
           console.log(
             `♻️ [ProtectRoute] Нашли пользователя по email (${email}). Обновляем Clerk ID...`
           );
@@ -49,7 +49,7 @@ export const protectRoute = [
           user.role = isAdmin ? "admin" : "user";
           await user.save();
         } else {
-          // СИТУАЦИЯ: Пользователя вообще нет, создаем с нуля
+          // Пользователя вообще нет, создаем с нуля
           console.log(
             `✨ [ProtectRoute] Создаем нового пользователя: ${email}`
           );
@@ -64,8 +64,6 @@ export const protectRoute = [
           await user.save();
         }
       }
-
-      // Сохраняем пользователя в запрос
       req.user = user;
       next();
     } catch (error) {

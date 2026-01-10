@@ -16,12 +16,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
 
-// --- ИМПОРТЫ УТИЛИТ ---
 import PageLoader from '@/components/PageLoader';
 import ErrorState from '@/components/ErrorState';
 import { useAddresses } from '@/hooks/useAddresses';
+import { useOrders } from '@/hooks/useOrders';
+import { useReturns } from '@/hooks/useReturns';
+import { useCoupons } from '@/hooks/useCoupons';
+import useWishlist from '@/hooks/useWishlist';
 
-// === 1. КРАСИВЫЙ СВИТЧ (Встроенный компонент) ===
+// === 1. Кастомный свич ===
 interface BeautifulSwitchProps {
   value: boolean;
   onValueChange: (value: boolean) => void;
@@ -39,13 +42,11 @@ const BeautifulSwitch = ({ value, onValueChange }: BeautifulSwitchProps) => {
     }).start();
   }, [value]);
 
-  // Интерполяция цвета фона
   const backgroundColor = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#E5E7EB', '#3B82F6'], // Серый -> Синий
+    outputRange: ['#E5E7EB', '#3B82F6'],
   });
 
-  // Интерполяция позиции кружка
   const translateX = animatedValue.interpolate({
     inputRange: [0, 1],
     outputRange: [2, 26],
@@ -81,9 +82,8 @@ const BeautifulSwitch = ({ value, onValueChange }: BeautifulSwitchProps) => {
   );
 };
 
-// --- СПИСОК МЕНЮ ---
+// --- Список меню ---
 const ACCOUNT_ITEMS = [
-  { id: 1, icon: 'person', title: 'Личные данные', color: '#3B82F6', action: '/profile-edit' },
   { id: 2, icon: 'bag', title: 'Мои заказы', color: '#10B981', action: '/orders' },
   { id: 6, icon: 'bag-remove', title: 'Мои возвраты', color: '#06B6D4', action: '/returns' },
   { id: 3, icon: 'map', title: 'Адреса доставки', color: '#F5CD0B', action: '/addresses' },
@@ -93,15 +93,22 @@ const ACCOUNT_ITEMS = [
 const ProfileScreen = () => {
   const { signOut } = useAuth();
 
-  // ИСПРАВЛЕНИЕ 1: Используем isLoaded вместо isLoading/isError
   const { user, isLoaded } = useUser();
 
   const { addresses } = useAddresses();
+  const { data: orders } = useOrders();
+  const { returns } = useReturns();
+  const { data: coupons } = useCoupons();
+  const { wishlistCount } = useWishlist();
 
-  // Состояния
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [imageError, setImageError] = useState(false);
+
+  const allowedCodes = ['WELCOME500', 'VIP_CLIENT'];
+  const availableCouponsCount = (coupons || []).filter((c) =>
+    allowedCodes.includes(c.code.toUpperCase())
+  ).length;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -121,7 +128,6 @@ const ProfileScreen = () => {
     router.push(path as any);
   };
 
-  // ИСПРАВЛЕНИЕ 1: Проверяем isLoaded
   if (!isLoaded) return <PageLoader />;
 
   if (!user) {
@@ -179,7 +185,7 @@ const ProfileScreen = () => {
             </View>
 
             <View className="flex-1">
-              <Text className="text-[#111827] text-xl font-raleway-bold mb-0.5" numberOfLines={1}>
+              <Text className="text-[#111827] text-xl font-raleway-semibold" numberOfLines={1}>
                 {user.firstName} {user.lastName}
               </Text>
               <Text className="text-[#6B7280] text-[14px] font-inter opacity-80" numberOfLines={1}>
@@ -201,7 +207,7 @@ const ProfileScreen = () => {
                 <Ionicons name="ticket" size={18} color="#FFFFFF" />
               </View>
               <Text className="text-black tracking-wide font-inter text-[15px]">
-                Промокоды
+                Промокоды {availableCouponsCount > 0 ? `(${availableCouponsCount})` : ''}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
@@ -214,8 +220,9 @@ const ProfileScreen = () => {
             {ACCOUNT_ITEMS.map((item, index) => (
               <TouchableOpacity
                 key={item.id}
-                className={`flex-row items-center justify-between p-4 bg-white active:bg-gray-50 ${index !== ACCOUNT_ITEMS.length - 1 ? 'border-b border-gray-100' : ''
-                  }`}
+                className={`flex-row items-center justify-between p-4 bg-white active:bg-gray-50 ${
+                  index !== ACCOUNT_ITEMS.length - 1 ? 'border-b border-gray-100' : ''
+                }`}
                 activeOpacity={0.7}
                 onPress={() => handleNavigation(item.action)}
               >
@@ -227,7 +234,14 @@ const ProfileScreen = () => {
                     <Ionicons name={item.icon as any} size={18} color="#FFFFFF" />
                   </View>
                   <Text className="text-black tracking-wide font-inter text-[15px]">
-                    {item.title}
+                    {(() => {
+                      let count = 0;
+                      if (item.title === 'Мои заказы') count = orders?.length || 0;
+                      if (item.title === 'Мои возвраты') count = returns?.length || 0;
+                      if (item.title === 'Избранное') count = wishlistCount;
+
+                      return count > 0 ? `${item.title} (${count})` : item.title;
+                    })()}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
@@ -239,7 +253,6 @@ const ProfileScreen = () => {
         {/* --- Настройки --- */}
         <View className="px-6 mb-6">
           <View className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm">
-            {/* Уведомления с кастомным свитчем */}
             <View className="flex-row items-center justify-between p-4 border-b border-gray-100">
               <View className="flex-row items-center">
                 <View className="w-9 h-9 rounded-xl bg-[#8B5CF6] items-center justify-center mr-4">
@@ -252,7 +265,6 @@ const ProfileScreen = () => {
                 <Text className="text-black font-inter tracking-wide text-[15px]">Уведомления</Text>
               </View>
 
-              {/* ИСПРАВЛЕНИЕ 2: Красивый свитч */}
               <BeautifulSwitch
                 value={notificationsEnabled}
                 onValueChange={setNotificationsEnabled}
@@ -303,7 +315,7 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <Text className="text-center text-[#9CA3AF] text-sm tracking-wide font-inter mt-4">
+        <Text className="text-center text-[#9CA3AF] text-sm tracking-wide font-inter">
           Версия приложения v1.0.0
         </Text>
       </ScrollView>

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { formatPrice } from '@/lib/utils';
-import useCart from '@/hooks/useCart';
 import useWishlist from '@/hooks/useWishlist';
 import { toast } from 'sonner-native';
 import { Brand, Product } from '@/types';
@@ -43,7 +42,7 @@ const ProductsGrid = ({ products, isLoading, isError, onRetry }: ProductsGridPro
   }
 
   return (
-    <View className="flex-row flex-wrap justify-between pb-10">
+    <View className="flex-row flex-wrap justify-between">
       {products.map((item) => (
         <ProductCard key={item._id} item={item} />
       ))}
@@ -51,11 +50,10 @@ const ProductsGrid = ({ products, isLoading, isError, onRetry }: ProductsGridPro
   );
 };
 
-// --- КАРТОЧКА ТОВАРА ---
+// --- Карточка товара ---
 const ProductCard = ({ item }: { item: Product }) => {
   const { wishlist, addToWishlist, removeFromWishlist } = useWishlist();
 
-  // Логика вишлиста
   const isActuallyInWishlist = wishlist?.some((w) => w._id === item._id) || false;
   const [isLiked, setIsLiked] = useState(isActuallyInWishlist);
 
@@ -90,7 +88,7 @@ const ProductCard = ({ item }: { item: Product }) => {
     }
   };
 
-  // Вычисление цены (диапазон или одна цена)
+  // Вычисление цены
   const getPriceDisplay = () => {
     if (item.variants && item.variants.length > 0) {
       const prices = item.variants.map((v) => v.price);
@@ -104,9 +102,10 @@ const ProductCard = ({ item }: { item: Product }) => {
   };
 
   // Получение списка объемов
-  const volumes = item.variants && item.variants.length > 0
-    ? item.variants.map(v => v.volume).sort((a, b) => a - b)
-    : [item.volume];
+  const volumes =
+    item.variants && item.variants.length > 0
+      ? item.variants.map((v) => v.volume).sort((a, b) => a - b)
+      : [item.volume];
 
   return (
     <TouchableOpacity
@@ -130,9 +129,9 @@ const ProductCard = ({ item }: { item: Product }) => {
         </TouchableOpacity>
 
         {item.isBestseller && (
-          <View className="absolute top-1 left-0.5 z-10 bg-red-400 px-2.5 py-1.5 rounded-full flex-row items-center">
-            <Ionicons name="flash" size={11} color="#FFFFFF" style={{ marginRight: 2.5 }} />
-            <Text className="text-white text-xs font-inter-extrabold tracking-wider uppercase">
+          <View className="absolute top-1 left-1.5 z-10 bg-white border border-black px-1.5 py-0.5 rounded-md flex-row items-center">
+            <Ionicons name="flash" size={10} color="#000000" style={{ marginRight: 2.5 }} />
+            <Text className="text-black text-[10px] font-inter-extrabold tracking-wider uppercase">
               Хит
             </Text>
           </View>
@@ -155,13 +154,13 @@ const ProductCard = ({ item }: { item: Product }) => {
         </Text>
 
         <Text
-          className="text-black font-raleway-medium text-[15px] -mt-0.5 tracking-wide mb-2"
+          className="text-black font-raleway-medium text-[15px] -mt-0.5 tracking-wide mb-1.5"
           numberOfLines={1}
         >
           {item.name}
         </Text>
 
-        <View className="mb-1 h-8">
+        <View className="h-9">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -171,9 +170,9 @@ const ProductCard = ({ item }: { item: Product }) => {
             {volumes.map((vol, index) => (
               <View
                 key={vol}
-                className="bg-white border border-black px-2 py-1 rounded-md self-start mr-1.5"
+                className="bg-white border border-gray-300 px-2 py-1 rounded-md self-start mr-1.5"
               >
-                <Text className="text-[9px] font-inter-semibold text-black uppercase">
+                <Text className="text-[9px] font-inter-semibold text-black/85 uppercase">
                   {vol} мл
                 </Text>
               </View>
@@ -181,9 +180,7 @@ const ProductCard = ({ item }: { item: Product }) => {
           </ScrollView>
         </View>
 
-        <Text className="text-black font-inter-semibold mb-1 text-[14px]">
-          {getPriceDisplay()}
-        </Text>
+        <Text className="text-black font-inter-semibold mb-1 text-[14px]">{getPriceDisplay()}</Text>
       </View>
     </TouchableOpacity>
   );

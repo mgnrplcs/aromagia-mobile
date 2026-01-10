@@ -3,6 +3,7 @@ import { Order } from "../models/order.model.js";
 import { Review } from "../models/review.model.js";
 import { Coupon } from "../models/coupon.model.js";
 import { Cart } from "../models/cart.model.js";
+import { ReturnRequest } from "../models/return.model.js";
 
 // Создание заказа
 export async function createOrder(req, res) {
@@ -27,7 +28,9 @@ export async function createOrder(req, res) {
     // 3.  Валидация товаров, стока и подсчет реальной суммы
     for (const item of orderItems) {
       // Ищем товар внутри сессии
-      const product = await Product.findById(item.product._id).session(session).populate('brand');
+      const product = await Product.findById(item.product._id)
+        .session(session)
+        .populate("brand");
       if (!product) {
         await session.abortTransaction();
         session.endSession();
@@ -39,7 +42,9 @@ export async function createOrder(req, res) {
 
       // Логика вариантов
       if (product.variants && product.variants.length > 0 && item.volume) {
-        const variant = product.variants.find(v => v.volume === parseInt(item.volume));
+        const variant = product.variants.find(
+          (v) => v.volume === parseInt(item.volume)
+        );
         if (variant) {
           currentPrice = variant.price;
           currentStock = variant.stock;
@@ -50,21 +55,23 @@ export async function createOrder(req, res) {
         await session.abortTransaction();
         session.endSession();
         return res.status(400).json({
-          error: `Недостаточно товара "${item.name}" (Объем: ${item.volume || 'стандарт'}) на складе (Остаток: ${currentStock})`,
+          error: `Недостаточно товара "${item.name}" (Объем: ${
+            item.volume || "стандарт"
+          }) на складе (Остаток: ${currentStock})`,
         });
       }
 
-      // Считаем сумму по цене из БАЗЫ (варианта или основной)
+      // Считаем сумму по цене из базы
       serverSubtotal += currentPrice * item.quantity;
 
       finalOrderItems.push({
         product: product._id,
         name: product.name,
-        brand: product.brand?.name || '',
+        brand: product.brand?.name || "",
         quantity: item.quantity,
         price: currentPrice,
         image: item.image || product.images[0],
-        volume: item.volume, // Сохраняем объем в заказе
+        volume: item.volume,
       });
     }
 
@@ -120,12 +127,14 @@ export async function createOrder(req, res) {
       if (product) {
         if (product.variants && product.variants.length > 0 && item.volume) {
           // Обновляем сток варианта
-          const variant = product.variants.find(v => v.volume === parseInt(item.volume));
+          const variant = product.variants.find(
+            (v) => v.volume === parseInt(item.volume)
+          );
           if (variant) {
             variant.stock -= item.quantity;
           }
         } else {
-          // Обновляем общий сток (legacy)
+          // Обновляем общий сток
           product.stock -= item.quantity;
         }
         await product.save({ session });
@@ -152,7 +161,7 @@ export async function createOrder(req, res) {
       .status(201)
       .json({ message: "Заказ успешно создан", order: createdOrder });
   } catch (error) {
-    console.error("Ошибка в createOrder:", error);
+    console.error("💥 Ошибка в createOrder:", error);
     await session.abortTransaction();
     session.endSession();
 
@@ -185,15 +194,23 @@ export async function getUserOrders(req, res) {
     // Создаем Set (набор) ID заказов, на которые уже есть отзывы
     const reviewedOrderIds = new Set(reviews.map((r) => r.orderId.toString()));
 
-    // 3. Формируем итоговый ответ
+    // 3. Проверка: запрашивал ли пользователь возврат
+    const returns = await ReturnRequest.find({
+      order: { $in: orderIds },
+      user: user._id,
+    });
+    const returnedOrderIds = new Set(returns.map((r) => r.order.toString()));
+
+    // 4. Формируем итоговый ответ
     const ordersWithStatus = orders.map((order) => ({
       ...order.toObject(),
       hasReviewed: reviewedOrderIds.has(order._id.toString()),
+      hasReturnRequested: returnedOrderIds.has(order._id.toString()),
     }));
 
     res.status(200).json({ orders: ordersWithStatus });
   } catch (error) {
-    console.error("Ошибка в getUserOrders:", error);
+    console.error("💥 Ошибка в getUserOrders:", error);
     res.status(500).json({
       message: "Не удалось получить список заказов",
       error: error.message,

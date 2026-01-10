@@ -19,7 +19,6 @@ export default function DeleteProductModal({
 }: DeleteProductModalProps) {
   if (!product) return null;
 
-  // Хелпер для бренда
   const getBrandName = (item: Product) => {
     if (item.brand && typeof item.brand === 'object' && 'name' in item.brand) {
       return (item.brand as Brand).name;

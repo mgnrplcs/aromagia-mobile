@@ -6,11 +6,9 @@ import { uploadToCloudinary } from "../utils/cloudinary.js";
 export async function createReturnRequest(req, res) {
   try {
     const user = req.user;
-    // Данные из FormData
     const { orderId, reason, details, items } = req.body;
     const files = req.files;
 
-    // Парсим items, так как через FormData массив приходит строкой
     let parsedItems;
     try {
       parsedItems = JSON.parse(items);
@@ -46,7 +44,7 @@ export async function createReturnRequest(req, res) {
       .status(201)
       .json({ message: "Заявка отправлена", returnRequest: newReturn });
   } catch (error) {
-    console.error("Ошибка в createReturnRequest:", error);
+    console.error("💥 Ошибка в createReturnRequest:", error);
     res.status(500).json({ message: "Ошибка сервера", error: error.message });
   }
 }
@@ -56,11 +54,18 @@ export async function getMyReturns(req, res) {
   try {
     const list = await ReturnRequest.find({ user: req.user._id })
       .populate("order", "clerkId totalPrice")
-      .populate("items.product", "name images")
+      .populate({
+        path: "items.product",
+        select: "name images volume brand",
+        populate: {
+          path: "brand",
+          select: "name",
+        },
+      })
       .sort({ createdAt: -1 });
     res.json(list);
   } catch (error) {
-    console.error("Ошибка в getMyReturns:", error);
+    console.error("💥 Ошибка в getMyReturns:", error);
     res.status(500).json({ error: error.message });
   }
 }

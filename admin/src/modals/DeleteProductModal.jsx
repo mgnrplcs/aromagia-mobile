@@ -17,7 +17,6 @@ export default function DeleteProductModal({
       role="dialog"
     >
       <div className="modal-box p-0 w-full max-w-sm overflow-hidden rounded-2xl shadow-xl bg-base-100">
-        {/* Кнопка закрытия */}
         <button
           onClick={onClose}
           className="btn btn-sm btn-circle btn-ghost absolute right-3 top-3 z-10"
@@ -27,7 +26,6 @@ export default function DeleteProductModal({
         </button>
 
         <div className="flex flex-col items-center text-center p-7">
-          {/* Иконка корзины */}
           <div className="w-14 h-14 rounded-full bg-error/10 flex items-center justify-center mb-4.5 ring-8 ring-error/5">
             <Trash2Icon className="w-7 h-7 text-error" strokeWidth={2} />
           </div>
@@ -40,9 +38,7 @@ export default function DeleteProductModal({
             Вы собираетесь удалить следующий товар:
           </p>
 
-          {/* Мини-карточка товара */}
           <div className="w-full flex items-center gap-3 bg-base-200/40 border border-base-200 rounded-xl p-3 text-left">
-            {/* Картинка */}
             <div className="w-12 h-12 shrink-0 rounded-lg bg-base-100 border border-base-200 overflow-hidden flex items-center justify-center">
               {productImage ? (
                 <img

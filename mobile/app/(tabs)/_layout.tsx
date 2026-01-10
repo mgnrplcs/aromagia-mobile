@@ -17,7 +17,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import useCart from '@/hooks/useCart';
 
-// Главный компонент
 export default function TabsLayout() {
   const { isSignedIn, isLoaded } = useAuth();
 
@@ -69,7 +68,6 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const [layout, setLayout] = useState({ width: 0, height: 0 });
 
-  // Достаем количество товаров для бейджика
   const { cartItemCount } = useCart();
 
   const translateX = useSharedValue(0);
@@ -193,7 +191,6 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           >
             <View>
               {options.tabBarIcon({ size: 24, color })}
-              {/* Рендерим бейдж и на активном, и на неактивном слое, чтобы при анимации он не исчезал */}
               {renderBadge(route.name)}
             </View>
             <Text style={{ color, fontSize: 12, fontWeight: '600', letterSpacing: 0.2 }}>
@@ -308,7 +305,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.8)',
   },
-  // Стили для бейджика
   badgeContainer: {
     position: 'absolute',
     top: -2,

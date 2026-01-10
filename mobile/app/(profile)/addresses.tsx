@@ -13,7 +13,6 @@ import DeleteAddressModal from '@/components/modals/DeleteAddressModal';
 import AddressCard from '@/components/AddressCard';
 import AddressFormModal from '@/components/modals/AddressFormModal';
 
-// Начальное состояние формы
 const INITIAL_FORM_STATE = {
   label: 'Дом',
   fullName: '',
@@ -151,14 +150,14 @@ function AddressesScreen() {
   return (
     <SafeScreen>
       {/* --- Шапка --- */}
-      <View className="px-6 pt-6 pb-4 bg-white flex-row items-center justify-between border-b border-gray-50">
+      <View className="px-6 pt-2 pb-4 bg-white flex-row items-center justify-between border-b border-gray-50">
         <TouchableOpacity
           onPress={() => router.back()}
           className="bg-gray-50 w-10 h-10 rounded-full items-center justify-center border border-gray-100 active:bg-gray-200"
         >
           <Ionicons name="arrow-back" size={22} color="#111827" />
         </TouchableOpacity>
-        <Text className="text-[#111827] text-2xl font-raleway-bold tracking-tight">Адреса</Text>
+        <Text className="text-[#111827] text-2xl font-raleway-semibold tracking-wide">Адреса</Text>
         <TouchableOpacity
           onPress={handleAddAddress}
           className="bg-gray-50 w-10 h-10 rounded-full items-center justify-center border border-gray-100 active:bg-gray-200"
@@ -225,7 +224,6 @@ function AddressesScreen() {
         )}
       </ScrollView>
 
-      {/* Модалка формы */}
       <AddressFormModal
         visible={showAddressForm}
         isEditing={!!editingAddressId}
@@ -237,7 +235,6 @@ function AddressesScreen() {
         onFormChange={setAddressForm}
       />
 
-      {/* Модалка удаления */}
       <DeleteAddressModal
         visible={!!addressToDelete}
         address={addressToDelete}

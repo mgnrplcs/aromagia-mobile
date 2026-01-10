@@ -24,7 +24,6 @@ function BrandsPage() {
   const [editingBrand, setEditingBrand] = useState(null);
   const [deletingBrand, setDeletingBrand] = useState(null);
 
-  // 1. Загрузка
   const { data: brandsData, isLoading } = useQuery({
     queryKey: ["brands"],
     queryFn: async () => {
@@ -33,7 +32,6 @@ function BrandsPage() {
     },
   });
 
-  // 2. Мутации
   const createMutation = useMutation({
     mutationFn: async (formData) => {
       const token = await getToken();
@@ -90,7 +88,6 @@ function BrandsPage() {
     }
   };
 
-  // Получение данных
   const brands =
     brandsData?.brands || (Array.isArray(brandsData) ? brandsData : []) || [];
 
@@ -161,7 +158,6 @@ function BrandsPage() {
               className="card bg-base-100 shadow-sm border border-base-200 hover:shadow-md hover:border-primary/30 transition-all group relative flex flex-col"
             >
               <div className="card-body p-4 flex flex-col items-center text-center">
-                {/* Контейнер с логотипом и кнопками */}
                 <div className="w-full aspect-3/2 bg-white rounded-xl flex items-center justify-center mb-3 p-2 relative overflow-hidden border border-base-100">
                   {brand.logo ? (
                     <img
@@ -176,7 +172,6 @@ function BrandsPage() {
                   {/* Кнопки  */}
 
                   <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    {/* Кнопка Редактировать */}
                     <button
                       className="btn btn-square btn-sm bg-base-100 border border-base-200 hover:border-primary hover:text-primary"
                       onClick={() => handleEdit(brand)}
@@ -184,8 +179,6 @@ function BrandsPage() {
                     >
                       <PencilIcon className="w-4 h-4" />
                     </button>
-
-                    {/* Кнопка Удалить */}
                     <button
                       className="btn btn-square btn-sm bg-base-100 border border-base-200 hover:border-error hover:text-error"
                       onClick={() => handleDeleteClick(brand)}

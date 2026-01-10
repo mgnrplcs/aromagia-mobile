@@ -12,7 +12,7 @@ import {
   Easing,
 } from 'react-native';
 
-// === 1. КРАСИВЫЙ СВИТЧ (Встроенный компонент) ===
+// === 1. Кастомный свич ===
 interface BeautifulSwitchProps {
   value: boolean;
   onValueChange: (value: boolean) => void;
@@ -30,13 +30,11 @@ const BeautifulSwitch = ({ value, onValueChange }: BeautifulSwitchProps) => {
     }).start();
   }, [value]);
 
-  // Интерполяция цвета фона
   const backgroundColor = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#E5E7EB', '#3B82F6'], // Серый -> Синий
+    outputRange: ['#E5E7EB', '#3B82F6'],
   });
 
-  // Интерполяция позиции кружка
   const translateX = animatedValue.interpolate({
     inputRange: [0, 1],
     outputRange: [2, 26],
@@ -72,7 +70,7 @@ const BeautifulSwitch = ({ value, onValueChange }: BeautifulSwitchProps) => {
   );
 };
 
-// === 2. ОСНОВНОЙ ЭКРАН ===
+// === 2. Основной экран ===
 
 type SecurityOption = {
   id: string;
@@ -227,10 +225,10 @@ function PrivacyAndSecurityScreen() {
 
         {/* Текст */}
         <View className="flex-1 mr-2">
-          <Text className="text-[#111827] font-inter-semibold text-[15px] mb-0.5">
-            {item.title}
+          <Text className="text-black font-inter-medium tracking-wide text-base">{item.title}</Text>
+          <Text className="text-gray-500/90 tracking-wide font-inter text-[13px]">
+            {item.description}
           </Text>
-          <Text className="text-[#6B7280] font-inter text-sm leading-4">{item.description}</Text>
         </View>
 
         {/* Действие */}
@@ -248,14 +246,16 @@ function PrivacyAndSecurityScreen() {
 
   return (
     <SafeScreen>
-      <View className="px-6 pt-4 pb-3 bg-white flex-row items-center border-b border-gray-50">
+      <View className="px-6 pt-2 pb-3 bg-white flex-row items-center border-b border-gray-50">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center -ml-2 mr-3"
+          className="w-9 h-9 bg-gray-50 rounded-full items-center justify-center -ml-2 mr-4"
         >
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+          <Ionicons name="arrow-back" size={22} color="#111827" />
         </TouchableOpacity>
-        <Text className="text-[#111827] text-xl font-raleway-bold">Безопасность</Text>
+        <Text className="text-black text-2xl tracking-wide font-raleway-semibold">
+          Безопасность
+        </Text>
       </View>
 
       <ScrollView
@@ -263,25 +263,25 @@ function PrivacyAndSecurityScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 80, paddingTop: 20 }}
       >
-        {/* Секция: БЕЗОПАСНОСТЬ */}
+        {/* Секция: Безопасность */}
         <View className="px-6 mb-2">
-          <Text className="text-[#111827] text-lg font-raleway-bold mb-2">Защита</Text>
+          <Text className="text-black text-lg font-raleway-semibold mb-2">Защита</Text>
           {securitySettings.map(renderItem)}
         </View>
 
-        {/* Секция: ПРИВАТНОСТЬ */}
+        {/* Секция: Приватность */}
         <View className="px-6 mb-2">
-          <Text className="text-[#111827] text-lg font-raleway-bold mb-2">Конфиденциальность</Text>
+          <Text className="text-black text-lg font-raleway-semibold mb-2">Конфиденциальность</Text>
           {privacySettings.map(renderItem)}
         </View>
 
-        {/* Секция: АККАУНТ */}
+        {/* Секция: Аккаунт */}
         <View className="px-6 mb-2">
-          <Text className="text-[#111827] text-lg font-raleway-bold mb-2">Аккаунт</Text>
+          <Text className="text-black text-lg font-raleway-semibold mb-2">Аккаунт</Text>
           {accountSettings.map(renderItem)}
         </View>
 
-        {/* Кнопка: УДАЛИТЬ АККАУНТ */}
+        {/* Кнопка: Удалить аккаунт */}
         <View className="px-6 pt-2 mb-4">
           <TouchableOpacity
             className="bg-white rounded-3xl p-4 flex-row items-center justify-between border border-red-100 active:bg-red-50"
@@ -292,10 +292,10 @@ function PrivacyAndSecurityScreen() {
                 <Ionicons name="ban" size={20} color="#FFFFFF" />
               </View>
               <View className="flex-1">
-                <Text className="text-[#EF4444] font-inter-semibold text-[15px] mb-0.5">
+                <Text className="text-[#EF4444] font-inter-medium text-[15px] mb-0.5">
                   Удалить аккаунт
                 </Text>
-                <Text className="text-[#9CA3AF] font-inter-medium text-xs">
+                <Text className="text-gray-500/90 font-inter text-[13px]">
                   Безвозвратное удаление профиля
                 </Text>
               </View>
@@ -304,7 +304,7 @@ function PrivacyAndSecurityScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ИНФО БЛОК */}
+        {/* Инфо-блок */}
         <View className="px-6 pb-8">
           <View className="bg-primary/10 rounded-[24px] p-5 border border-primary/20">
             <View className="flex-row">
@@ -313,10 +313,10 @@ function PrivacyAndSecurityScreen() {
               </View>
 
               <View className="flex-1 justify-center">
-                <Text className="text-[#111827] font-raleway-semibold text-[15px] mb-1.5">
+                <Text className="text-black font-raleway-semibold text-lg mb-1">
                   Ваши данные под защитой
                 </Text>
-                <Text className="text-[#6B7280] text-sm font-inter leading-5">
+                <Text className="text-[#6B7280] text-[13px] font-inter leading-6">
                   Все персональные данные хранятся в зашифрованном виде. Вы полностью контролируете
                   настройки доступа.
                 </Text>

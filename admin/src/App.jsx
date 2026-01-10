@@ -24,7 +24,7 @@ function App() {
 
   return (
     <Routes>
-      {/* === ПУБЛИЧНАЯ ЗОНА === */}
+      {/* === Публичная зона === */}
       <Route
         path="/login"
         element={
@@ -32,14 +32,11 @@ function App() {
         }
       />
 
-      {/* === ЗАЩИЩЕННАЯ ЗОНА (ADMIN) === */}
+      {/* === Защищенная зона === */}
       <Route element={<AdminRoute />}>
-        {/* 2. Если роль OK, грузится DashboardLayout (Сайдбар + Навбар) */}
         <Route element={<DashboardLayout />}>
-          {/* Редирект с корня / на /dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-          {/* Вложенные страницы */}
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="brands" element={<BrandsPage />} />
@@ -48,12 +45,10 @@ function App() {
           <Route path="coupons" element={<CouponsPage />} />
           <Route path="returns" element={<ReturnsPage />} />
 
-          {/* 404 для неизвестных страниц внутри админки */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>
 
-      {/* === ОБЩИЙ 404 (Для путей, не попавших в другие правила) === */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

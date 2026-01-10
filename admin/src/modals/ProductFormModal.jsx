@@ -49,7 +49,6 @@ export default function ProductFormModal({
   useEffect(() => {
     if (isOpen) {
       if (productToEdit) {
-        // Логика инициализации вариантов
         let initialVariants = productToEdit.variants || [];
         // Если вариантов нет, но есть старые поля - создадим "виртуальный" вариант
         if (initialVariants.length === 0 && productToEdit.volume) {
@@ -82,8 +81,6 @@ export default function ProductFormModal({
           isBestseller: productToEdit.isBestseller || false,
           variants: initialVariants,
         });
-
-        // Устанавливаем активный объем (первый из вариантов или 0)
         if (initialVariants.length > 0) {
           setActiveVolume(initialVariants[0].volume);
         } else {
@@ -101,7 +98,6 @@ export default function ProductFormModal({
         setPendingVolume("");
       }
     } else {
-      // Reset state on close
       setIsWaitingForVolume(false);
       setPendingVolume("");
     }
@@ -114,19 +110,31 @@ export default function ProductFormModal({
   const updateActiveVariantField = (field, value) => {
     setFormData((prev) => {
       const newVariants = [...prev.variants];
-      const variantIndex = newVariants.findIndex(v => v.volume === activeVolume);
+      const variantIndex = newVariants.findIndex(
+        (v) => v.volume === activeVolume
+      );
 
       if (variantIndex > -1) {
         if (field === "volume") {
           const newVol = parseInt(value) || 0;
-          if (newVariants.some((v, idx) => idx !== variantIndex && v.volume === newVol)) {
+          if (
+            newVariants.some(
+              (v, idx) => idx !== variantIndex && v.volume === newVol
+            )
+          ) {
             alert("Такой объем уже есть");
             return prev;
           }
-          newVariants[variantIndex] = { ...newVariants[variantIndex], volume: newVol };
+          newVariants[variantIndex] = {
+            ...newVariants[variantIndex],
+            volume: newVol,
+          };
           setActiveVolume(newVol);
         } else {
-          newVariants[variantIndex] = { ...newVariants[variantIndex], [field]: value };
+          newVariants[variantIndex] = {
+            ...newVariants[variantIndex],
+            [field]: value,
+          };
         }
         return { ...prev, variants: newVariants };
       }
@@ -145,12 +153,12 @@ export default function ProductFormModal({
       const firstVariant = {
         volume: volNum,
         price: formData.price || 0,
-        stock: formData.stock || 0
+        stock: formData.stock || 0,
       };
 
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        variants: [firstVariant]
+        variants: [firstVariant],
       }));
       setActiveVolume(volNum);
       setActiveVolume(volNum);
@@ -158,7 +166,7 @@ export default function ProductFormModal({
       setIsWaitingForVolume(true);
       setActiveVolume(0);
       setPendingVolume("");
-      setFormData(prev => ({ ...prev, price: "", stock: "" }));
+      setFormData((prev) => ({ ...prev, price: "", stock: "" }));
     }
   };
 
@@ -166,7 +174,7 @@ export default function ProductFormModal({
     const volNum = parseInt(volume);
     if (!volNum) return;
 
-    if (formData.variants.some(v => v.volume === volNum)) {
+    if (formData.variants.some((v) => v.volume === volNum)) {
       alert("Такой объем уже есть");
       return;
     }
@@ -174,12 +182,12 @@ export default function ProductFormModal({
     const newVariant = {
       volume: volNum,
       price: formData.price || 0,
-      stock: formData.stock || 0
+      stock: formData.stock || 0,
     };
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      variants: [...prev.variants, newVariant]
+      variants: [...prev.variants, newVariant],
     }));
     setActiveVolume(volNum);
     setIsWaitingForVolume(false);
@@ -187,8 +195,8 @@ export default function ProductFormModal({
 
   const handleRemoveVariant = (vol) => {
     if (!confirm("Удалить этот вариант?")) return;
-    setFormData(prev => {
-      const newVariants = prev.variants.filter(v => v.volume !== vol);
+    setFormData((prev) => {
+      const newVariants = prev.variants.filter((v) => v.volume !== vol);
       return { ...prev, variants: newVariants };
     });
     if (activeVolume === vol) {
@@ -198,8 +206,10 @@ export default function ProductFormModal({
 
   const getCurrentVariantValues = () => {
     if (!activeVolume) return { price: formData.price, stock: formData.stock };
-    const variant = formData.variants.find(v => v.volume === activeVolume);
-    return variant ? { price: variant.price, stock: variant.stock } : { price: 0, stock: 0 };
+    const variant = formData.variants.find((v) => v.volume === activeVolume);
+    return variant
+      ? { price: variant.price, stock: variant.stock }
+      : { price: 0, stock: 0 };
   };
 
   const currentValues = getCurrentVariantValues();
@@ -308,8 +318,6 @@ export default function ProductFormModal({
             <XIcon className="w-5 h-5" />
           </button>
         </div>
-
-        {/* Контент */}
         <div className="overflow-y-auto custom-scrollbar px-6 py-5 scroll-smooth">
           <form id="product-form" onSubmit={handleSubmit} className="space-y-5">
             {/* Блок 1: Основное */}
@@ -369,7 +377,6 @@ export default function ProductFormModal({
                 <label className="label font-semibold text-sm text-base-content/80 mb-1">
                   Объем и варианты
                 </label>
-
               </div>
 
               {formData.variants.length > 0 ? (
@@ -382,12 +389,13 @@ export default function ProductFormModal({
                         key={v.volume}
                         role="button"
                         className={`
-            flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 text-xs font-medium select-none
-            ${isActive
-                            ? "bg-primary text-white border-primary shadow-md z-10"
-                            : "bg-base-200 text-base-content/70 border-transparent hover:bg-base-300 hover:text-base-content"
-                          }
-          `}
+                              flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 text-xs font-medium select-none
+                              ${
+                                isActive
+                                  ? "bg-primary text-white border-primary shadow-md z-10"
+                                  : "bg-base-200 text-base-content/70 border-transparent hover:bg-base-300 hover:text-base-content"
+                              }
+                            `}
                         onClick={() => {
                           setActiveVolume(v.volume);
                           setIsWaitingForVolume(false);
@@ -398,12 +406,13 @@ export default function ProductFormModal({
                         <button
                           type="button"
                           className={`
-              w-5 h-5 flex items-center -mr-1.5 justify-center rounded-full transition-all
-              ${isActive
-                              ? "bg-white/20 text-white hover:text-error"
-                              : "bg-black/5 text-base-content/50 hover:text-error hover:shadow-sm"
-                            }
-            `}
+                                      w-5 h-5 flex items-center -mr-1.5 justify-center rounded-full transition-all
+                                      ${
+                                        isActive
+                                          ? "bg-white/20 text-white hover:text-error"
+                                          : "bg-black/5 text-base-content/50 hover:text-error hover:shadow-sm"
+                                      }
+                                  `}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleRemoveVariant(v.volume);
@@ -414,7 +423,6 @@ export default function ProductFormModal({
                       </div>
                     );
                   })}
-
 
                   {isWaitingForVolume && (
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-dashed border-primary/50 bg-primary/10 text-primary animate-pulse text-xs font-medium select-none">
@@ -436,8 +444,6 @@ export default function ProductFormModal({
                       </button>
                     </div>
                   )}
-
-                  {/* Кнопка добавления в конце */}
                   {!isWaitingForVolume && (
                     <button
                       type="button"
@@ -473,7 +479,13 @@ export default function ProductFormModal({
                     <input
                       type="number"
                       className="input input-bordered w-full pr-10 focus:outline-none focus:border-primary"
-                      value={isWaitingForVolume ? pendingVolume : (activeVolume > 0 ? activeVolume : formData.volume)}
+                      value={
+                        isWaitingForVolume
+                          ? pendingVolume
+                          : activeVolume > 0
+                          ? activeVolume
+                          : formData.volume
+                      }
                       onChange={(e) => {
                         const val = e.target.value;
                         if (isWaitingForVolume) {
@@ -490,14 +502,16 @@ export default function ProductFormModal({
                         }
                       }}
                       onKeyDown={(e) => {
-                        if (isWaitingForVolume && e.key === 'Enter') {
+                        if (isWaitingForVolume && e.key === "Enter") {
                           e.preventDefault();
                           if (e.target.value) confirmNewVariant(e.target.value);
                         }
                       }}
                       autoFocus={isWaitingForVolume}
                       required
-                      placeholder={isWaitingForVolume ? "Введите объем..." : "0"}
+                      placeholder={
+                        isWaitingForVolume ? "Введите объем..." : "0"
+                      }
                     />
                     <div className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none">
                       <Beaker
@@ -801,7 +815,8 @@ export default function ProductFormModal({
                       Нажмите для загрузки фото
                     </span>
                     <span className="text-[13px] text-base-content/50">
-                      Поддерживаемые форматы: JPEG, JPG, PNG, WEBP. Макс. размер: 5 MB
+                      Поддерживаемые форматы: JPEG, JPG, PNG, WEBP. Макс.
+                      размер: 5 MB
                     </span>
                   </div>
                 </div>

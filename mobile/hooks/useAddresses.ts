@@ -5,18 +5,15 @@ import { Address } from '@/types';
 export const useAddresses = () => {
   const api = useApi();
   const queryClient = useQueryClient();
-
-  // 1. Добавляем refetch в деструктуризацию
   const {
     data: addresses = [],
     isLoading,
     isError,
-    refetch, // <--- ВАЖНО: Добавили это
+    refetch,
   } = useQuery({
     queryKey: ['addresses'],
     queryFn: async () => {
       const { data } = await api.get<{ addresses: Address[] }>('/users/addresses');
-      // Бэкенд может возвращать { addresses: [...] } или просто массив, проверь свой API
       return data.addresses || [];
     },
   });
@@ -60,7 +57,7 @@ export const useAddresses = () => {
     addresses,
     isLoading,
     isError,
-    refetch, // <--- ВАЖНО: Возвращаем это
+    refetch,
     addAddress: addAddressMutation.mutate,
     updateAddress: updateAddressMutation.mutate,
     deleteAddress: deleteAddressMutation.mutate,

@@ -27,7 +27,6 @@ const ShopScreen = () => {
   const { data: products, isLoading, isError, refetch: refetchProducts } = useProducts();
   const { refetch: refetchWishlist } = useWishlist();
 
-  // Вычисляем реальные цены (min/max)
   const priceRange = useMemo(() => {
     if (!products || products.length === 0) return { min: 0, max: 50000 };
     const prices = products.map((p) => p.price);
@@ -37,7 +36,6 @@ const ShopScreen = () => {
     };
   }, [products]);
 
-  // Стейты для фильтров
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [sortOption, setSortOption] = useState<SortOption>('popular');
   const [minPrice, setMinPrice] = useState<string>('');
@@ -109,10 +107,10 @@ const ShopScreen = () => {
           />
         }
       >
-        <View className="px-6 pb-4 pt-6">
+        <View className="px-6 pb-4 pt-2">
           {/* Шапка */}
           <View className="flex-row items-center justify-between mb-3.5">
-            <Text className="text-black text-3xl font-raleway-bold">Каталог</Text>
+            <Text className="text-black text-3xl font-raleway-semibold tracking-wide">Каталог</Text>
             {itemsCount > 0 && (
               <View className="bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
                 <Text className="text-primary text-sm tracking-wide font-inter-semibold">
@@ -124,8 +122,8 @@ const ShopScreen = () => {
 
           {/* Поиск + Кнопка */}
           <View className="flex-row items-center">
-            <View className="flex-1 flex-row items-center px-5 py-0.5 bg-gray-50 rounded-2xl border border-gray-200/80">
-              <Ionicons color={'#b3b6bb'} size={20} name="search" />
+            <View className="flex-1 flex-row items-center px-5 bg-gray-50 rounded-2xl border border-gray-200/80">
+              <Ionicons color={'#cccccc'} size={20} name="search" />
               <TextInput
                 placeholder="Найти товары..."
                 placeholderTextColor={'#a3a5aa'}
@@ -145,7 +143,7 @@ const ShopScreen = () => {
         </View>
 
         {/* Категории */}
-        <View className="mb-6">
+        <View className="mb-5">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -158,10 +156,10 @@ const ShopScreen = () => {
                   key={category.name}
                   onPress={() => setSelectedCategory(category.name)}
                   activeOpacity={0.8}
-                  className={`px-5 py-2.5 rounded-full border transition-all ${isSelected ? 'bg-black border-black' : 'bg-white border-gray-200'}`}
+                  className={`px-4 py-2 rounded-xl border transition-all ${isSelected ? 'bg-black border-black' : 'bg-white border-gray-200'}`}
                 >
                   <Text
-                    className={`font-inter-medium tracking-wide text-[13px] ${isSelected ? 'text-white' : 'text-gray-500'}`}
+                    className={`font-inter-medium tracking-wide text-sm ${isSelected ? 'text-white' : 'text-gray-500/80'}`}
                   >
                     {category.label}
                   </Text>
@@ -181,7 +179,6 @@ const ShopScreen = () => {
         </View>
       </ScrollView>
 
-      {/* --- Модалка --- */}
       <FilterModal
         visible={isFilterVisible}
         onClose={() => setIsFilterVisible(false)}

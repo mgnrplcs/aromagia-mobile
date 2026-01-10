@@ -12,11 +12,9 @@ const syncUser = inngest.createFunction(
   async ({ event }) => {
     await connectDB();
 
-    // === 1. Ищем данные пользователя ===
     const userData = event.data?.data || event.data;
     console.log("📥 [SYNC-USER] Обработка данных:", userData?.id);
 
-    // === 2. Безопасная деструктуризация ===
     const {
       id,
       first_name,
@@ -31,7 +29,6 @@ const syncUser = inngest.createFunction(
       return;
     }
 
-    // === 3. Безопасное получение email ===
     const email = email_addresses?.[0]?.email_address || "";
 
     const isAdmin =
@@ -41,12 +38,8 @@ const syncUser = inngest.createFunction(
 
     const role = isAdmin ? "admin" : "user";
 
-    // === 4. УМНАЯ ЛОГИКА ОБНОВЛЕНИЯ ===
-
-    // Сначала ищем пользователя по Clerk ID
     let user = await User.findOne({ clerkId: id });
 
-    // Если не нашли по ID, ищем по EMAIL (чтобы избежать дублей)
     if (!user && email) {
       user = await User.findOne({ email: email });
       if (user) {
@@ -57,18 +50,17 @@ const syncUser = inngest.createFunction(
     }
 
     if (user) {
-      // ОБНОВЛЯЕМ существующего
-      user.clerkId = id; // Обновляем ID на случай, если он изменился (пересоздание в Clerk)
+      // Обновляем существующего
+      user.clerkId = id;
       user.firstName = first_name || user.firstName;
       user.lastName = last_name || user.lastName;
       user.imageUrl = image_url || user.imageUrl;
       user.phone = phone_numbers?.[0]?.phone_number || user.phone;
-      user.role = role; // Можно убрать, если не хочешь сбрасывать роль
+      user.role = role;
 
       await user.save();
       console.log(`✅ [SYNC-USER] Обновлено: ${email} (${role})`);
     } else {
-      // СОЗДАЕМ нового
       await User.create({
         clerkId: id,
         email: email,

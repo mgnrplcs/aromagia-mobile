@@ -13,7 +13,6 @@ const AdminRoute = () => {
 
   useEffect(() => {
     const checkUserRole = async () => {
-      // 1. Ждем Clerk
       if (!isLoaded) return;
 
       if (!isSignedIn) {
@@ -23,7 +22,6 @@ const AdminRoute = () => {
 
       try {
         const token = await getToken();
-        // 3. Спрашиваем бэкенд о роли
         const dbUser = await userApi.getMe(token);
         setIsAdmin(dbUser.role === "admin");
       } catch (error) {
@@ -37,24 +35,16 @@ const AdminRoute = () => {
     checkUserRole();
   }, [isLoaded, isSignedIn, getToken]);
 
-  // === РЕНДЕРИНГ ===
-
-  // 1. Показываем лоадер, пока грузится Clerk ИЛИ идет запрос к БД
   if (!isLoaded || isRoleChecking) {
     return <PageLoader />;
   }
-
-  // 2. Если пользователь не вошел в систему -> Редирект на логин
   if (!isSignedIn) {
     return <Navigate to="/login" replace />;
   }
-
-  // 3. Если вошел, но НЕ админ -> Показываем страницу ошибки
   if (isAdmin === false) {
     return <AccessDeniedPage />;
   }
 
-  // 4. Если Админ -> Рендерим дочерние роуты (Outlet)
   return <Outlet />;
 };
 

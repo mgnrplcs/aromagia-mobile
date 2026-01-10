@@ -23,7 +23,7 @@ export async function addAddress(req, res) {
       });
     }
 
-    // 2. Валидация формата данных (Индекс РФ - 6 цифр)
+    // 2. Валидация формата данных
     const zipRegex = /^\d{6}$/;
     if (!zipRegex.test(zipCode)) {
       return res.status(400).json({
@@ -71,7 +71,7 @@ export async function addAddress(req, res) {
       addresses: user.addresses,
     });
   } catch (error) {
-    console.error("Ошибка в addAddress:", error);
+    console.error("💥 Ошибка в addAddress:", error);
     res.status(500).json({
       message: "Не удалось добавить адрес",
       error: error.message,
@@ -91,7 +91,7 @@ export async function getAddresses(req, res) {
 
     res.status(200).json({ addresses: user.addresses });
   } catch (error) {
-    console.error("Ошибка в getAddresses:", error);
+    console.error("💥 Ошибка в getAddresses:", error);
     res.status(500).json({
       message: "Не удалось получить адреса",
       error: error.message,
@@ -124,15 +124,12 @@ export async function updateAddress(req, res) {
 
     const shouldBeDefault = isDefault || user.addresses.length === 0;
 
-    // Если пользователь хочет сделать этот адрес главным
     if (isDefault) {
       user.addresses.forEach((addr) => {
         addr.isDefault = false;
       });
     }
 
-    // Обновляем поля только если они пришли в запросе
-    // (|| address.field оставляет старое значение)
     address.label = label || address.label;
     address.fullName = fullName || address.fullName;
     address.streetAddress = streetAddress || address.streetAddress;
@@ -151,7 +148,7 @@ export async function updateAddress(req, res) {
       .status(200)
       .json({ message: "Адрес успешно обновлён", addresses: user.addresses });
   } catch (error) {
-    console.error("Ошибка в updateAddress:", error);
+    console.error("💥 Ошибка в updateAddress:", error);
     res.status(500).json({
       message: "Не удалось обновить адрес",
       error: error.message,
@@ -189,7 +186,7 @@ export async function deleteAddress(req, res) {
       .status(200)
       .json({ message: "Адрес успешно удалён", addresses: user.addresses });
   } catch (error) {
-    console.error("Ошибка в deleteAddress:", error);
+    console.error("💥 Ошибка в deleteAddress:", error);
     res.status(500).json({
       message: "Не удалось удалить адрес",
       error: error.message,
@@ -197,7 +194,6 @@ export async function deleteAddress(req, res) {
   }
 }
 
-// Опции для глубокого заполнения (DRY)
 const wishlistPopulateOptions = {
   path: "wishlist",
   populate: {
@@ -215,7 +211,7 @@ export async function getWishlist(req, res) {
 
     res.status(200).json({ wishlist: user.wishlist });
   } catch (error) {
-    console.error("Ошибка в getWishlist:", error);
+    console.error("💥 Ошибка в getWishlist:", error);
     res.status(500).json({
       message: "Не удалось получить избранное",
       error: error.message,
@@ -249,7 +245,7 @@ export async function addToWishlist(req, res) {
       wishlist: user.wishlist,
     });
   } catch (error) {
-    console.error("Ошибка в addToWishlist:", error);
+    console.error("💥 Ошибка в addToWishlist:", error);
     res.status(500).json({
       message: "Не удалось добавить в избранное",
       error: error.message,
@@ -263,8 +259,6 @@ export async function removeFromWishlist(req, res) {
     const { productId } = req.params;
     const user = req.user;
 
-    // 1. Используем .pull()
-    // Он сам найдет нужный ID и удалит его
     user.wishlist.pull(productId);
     await user.save();
 
@@ -275,7 +269,7 @@ export async function removeFromWishlist(req, res) {
       wishlist: user.wishlist,
     });
   } catch (error) {
-    console.error("Ошибка в removeFromWishlist:", error);
+    console.error("💥 Ошибка в removeFromWishlist:", error);
     res.status(500).json({
       message: "Не удалось удалить из избранного",
       error: error.message,

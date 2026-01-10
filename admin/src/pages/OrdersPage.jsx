@@ -10,6 +10,9 @@ import {
   CreditCard,
   User,
   Filter,
+  Undo2,
+  Check,
+  Ban,
 } from "lucide-react";
 import { orderApi } from "../lib/api";
 import { formatDate, getDeclension, getOrderStatusColor } from "../lib/utils";
@@ -134,9 +137,8 @@ function OrdersPage() {
                     let displayName = "Аноним";
 
                     if (customer.firstName || customer.lastName) {
-                      displayName = `${customer.firstName || ""} ${
-                        customer.lastName || ""
-                      }`.trim();
+                      displayName = `${customer.firstName || ""} ${customer.lastName || ""
+                        }`.trim();
                     } else if (order.shippingAddress?.fullName) {
                       displayName = order.shippingAddress.fullName;
                     }
@@ -155,17 +157,23 @@ function OrdersPage() {
                     return (
                       <tr
                         key={order._id}
-                        className="hover:bg-base-50 transition-colors group"
+                        className="hover:bg-base-50 transition-colors group relative"
                       >
                         {/* 1. ID */}
-                        <td>
+                        <td className="relative">
+                          {order.hasReturnRequested && (
+                            <div className="absolute inset-0 z-10 bg-base-100/40 pointer-events-none" />
+                          )}
                           <div className="font-semibold text-base-content text-xs bg-base-200 px-2 py-1 rounded-md w-fit">
                             #{order._id.slice(-6).toUpperCase()}
                           </div>
                         </td>
 
                         {/* 2. Клиент  */}
-                        <td>
+                        <td className="relative">
+                          {order.hasReturnRequested && (
+                            <div className="absolute inset-0 z-10 bg-base-100/40  pointer-events-none" />
+                          )}
                           <div className="flex items-center gap-3">
                             <div className="avatar">
                               <div className="w-10 h-10 rounded-full ring-1 ring-base-200 bg-base-100 flex items-center justify-center overflow-hidden">
@@ -198,7 +206,10 @@ function OrdersPage() {
                           </div>
                         </td>
                         {/* 3. Дата  */}
-                        <td>
+                        <td className="relative">
+                          {order.hasReturnRequested && (
+                            <div className="absolute inset-0 z-10 bg-base-100/40  pointer-events-none" />
+                          )}
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-base-200 flex items-center justify-center shrink-0">
                               <Calendar className="w-5 h-5 text-base-content/70" />
@@ -218,7 +229,42 @@ function OrdersPage() {
                           </div>
                         </td>
                         {/* 4. Товары  */}
-                        <td>
+                        <td className="relative">
+                          {order.hasReturnRequested && (() => {
+                            let borderColor = "border-white";
+                            let iconColor = "text-white";
+                            let icon = <Undo2 className={`w-4 h-4 ${iconColor}`} strokeWidth={2.5} />;
+                            let text = "Запрошен возврат";
+
+                            if (order.returnStatus === "Возврат выполнен") {
+                              borderColor = "border-primary";
+                              iconColor = "text-primary";
+                              icon = <Check className={`w-4 h-4 ${iconColor}`} strokeWidth={3} />;
+                              text = "Возврат выполнен";
+                            } else if (order.returnStatus === "Отклонено") {
+                              borderColor = "border-secondary";
+                              iconColor = "text-secondary";
+                              icon = <Ban className={`w-4 h-4 ${iconColor}`} strokeWidth={2.5} />;
+                              text = "Возврат отклонен";
+                            } else if (order.returnStatus === "Одобрено") {
+                              borderColor = "border-primary";
+                              iconColor = "text-primary";
+                              icon = <Check className={`w-4 h-4 ${iconColor}`} strokeWidth={3} />;
+                              text = "Возврат одобрен";
+                            }
+
+                            return (
+                              <div className="absolute inset-0 z-10 bg-base-100/40 pointer-events-none flex items-center justify-center">
+                                <Link
+                                  to="/returns"
+                                  className={`btn btn-sm bg-base-200 ${borderColor} border-2 hover:bg-base-300 -translate-x-34 shadow-xl gap-1.5 pointer-events-auto z-20`}
+                                >
+                                  {icon}
+                                  <span className="text-base-content font-bold">{text}</span>
+                                </Link>
+                              </div>
+                            );
+                          })()}
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-base-200 flex items-center justify-center shrink-0">
                               <Package className="w-5 h-5 text-primary" />
@@ -241,14 +287,17 @@ function OrdersPage() {
                           </div>
                         </td>
                         {/* 5. Статус  */}
-                        <td>
+                        <td className="relative">
+                          {order.hasReturnRequested && (
+                            <div className="absolute inset-0 z-10 bg-base-100/40 pointer-events-none" />
+                          )}
                           <div className="relative w-fit">
                             <select
                               value={order.status}
                               onChange={(e) =>
                                 handleStatusChange(order._id, e.target.value)
                               }
-                              disabled={isUpdating}
+                              disabled={isUpdating || order.hasReturnRequested}
                               className={`select select-sm select-bordered font-bold tracking-wide focus:outline-none pr-8 ${statusColor}`}
                             >
                               {STATUS_OPTIONS.map((opt) => (
@@ -270,7 +319,10 @@ function OrdersPage() {
                           </div>
                         </td>
                         {/* 6. Сумма  */}
-                        <td>
+                        <td className="relative">
+                          {order.hasReturnRequested && (
+                            <div className="absolute inset-0 z-10 bg-base-100/40 pointer-events-none" />
+                          )}
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-base-200 flex items-center justify-center shrink-0">
                               <CreditCard className="w-5 h-5 text-base-content/70" />

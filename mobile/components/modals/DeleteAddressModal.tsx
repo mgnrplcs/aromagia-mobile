@@ -39,7 +39,6 @@ export default function DeleteAddressModal({
               Вы собираетесь удалить этот адрес:
             </Text>
 
-            {/* Карточка удаляемого объекта */}
             <View className="w-full flex-row items-center bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-4">
               <View className="w-14 h-14 bg-white rounded-2xl items-center justify-center border border-gray-200">
                 <Ionicons

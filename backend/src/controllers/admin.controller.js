@@ -1,4 +1,3 @@
-import cloudinary from "../config/cloudinary.js";
 import { clerkClient } from "@clerk/clerk-sdk-node";
 import { Product } from "../models/product.model.js";
 import { Order } from "../models/order.model.js";
@@ -45,7 +44,7 @@ export async function createProduct(req, res) {
       if (typeof variants === "string") {
         try {
           parsedVariants = JSON.parse(variants);
-        } catch (e) { }
+        } catch (e) {}
       } else {
         parsedVariants = variants;
       }
@@ -57,16 +56,24 @@ export async function createProduct(req, res) {
       if (!stock) req.body.stock = parsedVariants[0].stock;
     }
 
-    const checkPrice = price || (parsedVariants.length > 0 ? parsedVariants[0].price : null);
-    const checkVolume = volume || (parsedVariants.length > 0 ? parsedVariants[0].volume : null);
-    const checkStock = stock !== undefined ? stock : (parsedVariants.length > 0 ? parsedVariants[0].stock : null);
+    const checkPrice =
+      price || (parsedVariants.length > 0 ? parsedVariants[0].price : null);
+    const checkVolume =
+      volume || (parsedVariants.length > 0 ? parsedVariants[0].volume : null);
+    const checkStock =
+      stock !== undefined
+        ? stock
+        : parsedVariants.length > 0
+        ? parsedVariants[0].stock
+        : null;
 
     if (!name) missingFields.push("Название");
     if (!brand) missingFields.push("Бренд");
     if (!description) missingFields.push("Описание");
     if (!checkPrice) missingFields.push("Цена");
     if (!checkVolume) missingFields.push("Объем");
-    if (checkStock === null || checkStock === undefined) missingFields.push("Наличие");
+    if (checkStock === null || checkStock === undefined)
+      missingFields.push("Наличие");
     if (!category) missingFields.push("Категория");
     if (!gender) missingFields.push("Пол");
     if (!scentFamily) missingFields.push("Семейство аромата");
@@ -98,7 +105,7 @@ export async function createProduct(req, res) {
     if (typeof notesPyramid === "string") {
       try {
         parsedNotes = JSON.parse(notesPyramid);
-      } catch (e) { }
+      } catch (e) {}
     }
 
     if (parsedNotes) {
@@ -126,7 +133,11 @@ export async function createProduct(req, res) {
     const imageUrls = uploadResults.map((result) => result.secure_url);
 
     // 5. Создание записи в БД
-    const article = req.body.article || `AR-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+    const article =
+      req.body.article ||
+      `AR-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, "0")}`;
 
     const product = await Product.create({
       name,
@@ -153,7 +164,7 @@ export async function createProduct(req, res) {
       product,
     });
   } catch (error) {
-    console.error("Ошибка в createProduct:", error);
+    console.error("💥 Ошибка в createProduct:", error);
     res.status(500).json({
       message: "Не удалось создать товар",
       error: error.message,
@@ -169,7 +180,7 @@ export async function getAllProducts(_, res) {
       .sort({ createdAt: -1 });
     res.status(200).json(products);
   } catch (error) {
-    console.error("Ошибка в getAllProducts:", error);
+    console.error("💥 Ошибка в getAllProducts:", error);
     res.status(500).json({
       message: "Не удалось загрузить список товаров",
       error: error.message,
@@ -189,7 +200,7 @@ export async function updateProduct(req, res) {
       return res.status(404).json({ message: "Товар не найден" });
     }
 
-    // Обновляем только те поля, которые пришли в запросе
+    // --- Обновление текстовых полей ---
     const simpleFields = [
       "name",
       "brand",
@@ -217,7 +228,6 @@ export async function updateProduct(req, res) {
       product.variants = parsedVariants;
     }
 
-    // Вспомогательная функция для безопасного парсинга чисел
     const safeParseFloat = (val) => {
       const parsed = parseFloat(val);
       return isNaN(parsed) ? null : parsed;
@@ -260,13 +270,13 @@ export async function updateProduct(req, res) {
     if (body.isBestseller !== undefined)
       product.isBestseller = String(body.isBestseller) === "true";
 
-    // Обработка нот (если передали новую пирамиду)
+    // Обработка нот
     if (body.notesPyramid) {
       let parsedNotes = body.notesPyramid;
       if (typeof parsedNotes === "string") {
         try {
           parsedNotes = JSON.parse(parsedNotes);
-        } catch (e) { }
+        } catch (e) {}
       }
       product.notesPyramid = parsedNotes;
 
@@ -286,10 +296,13 @@ export async function updateProduct(req, res) {
       );
     }
 
-    // Обработка фото (если загрузили новые)
-
+    // Обработка фото
     if (!product.article) {
-      product.article = `AR-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+      product.article = `AR-${Date.now().toString().slice(-6)}${Math.floor(
+        Math.random() * 1000
+      )
+        .toString()
+        .padStart(3, "0")}`;
     }
 
     if (files && files.length > 0) {
@@ -299,20 +312,38 @@ export async function updateProduct(req, res) {
         });
       }
 
-      if (product.images && product.images.length > 0) {
-        await Promise.all(
-          product.images.map((imgUrl) => deleteFromCloudinary(imgUrl))
+      try {
+        const uploadPromises = files.map((file) =>
+          uploadToCloudinary(file, "products")
         );
-      }
+        const uploadResults = await Promise.all(uploadPromises);
+        const newImageUrls = uploadResults.map((result) => result.secure_url);
 
-      // Загружаем новые
-      const uploadPromises = files.map((file) => {
-        return cloudinary.uploader.upload(file.path, {
-          folder: "products",
+        // 2. Если загрузка успешна, удаляем старые фото
+        if (product.images && product.images.length > 0) {
+          Promise.all(
+            product.images.map((imgUrl) =>
+              deleteFromCloudinary(imgUrl).catch((err) =>
+                console.error(
+                  `Не удалось удалить старое фото ${imgUrl}:`,
+                  err.message
+                )
+              )
+            )
+          ).catch((e) =>
+            console.error("Ошибка при массовом удалении фото:", e)
+          );
+        }
+
+        // 3. Обновляем ссылки в продукте
+        product.images = newImageUrls;
+      } catch (uploadError) {
+        console.error("Ошибка при загрузке новых фото:", uploadError);
+        return res.status(500).json({
+          message: "Ошибка при загрузке изображений",
+          error: uploadError.message,
         });
-      });
-      const uploadResults = await Promise.all(uploadPromises);
-      product.images = uploadResults.map((result) => result.secure_url);
+      }
     }
 
     await product.save();
@@ -322,7 +353,7 @@ export async function updateProduct(req, res) {
       product,
     });
   } catch (error) {
-    console.error("Ошибка в updateProduct:", error);
+    console.error("💥 Ошибка в updateProduct:", error);
     res.status(500).json({
       message: "Не удалось обновить товар",
       error: error.message,
@@ -350,7 +381,7 @@ export async function deleteProduct(req, res) {
     await Product.findByIdAndDelete(id);
     res.status(200).json({ message: "Товар успешно удалён" });
   } catch (error) {
-    console.error("Ошибка в deleteProduct:", error);
+    console.error("💥 Ошибка в deleteProduct:", error);
     res.status(500).json({
       message: "Не удалось удалить товар",
       error: error.message,
@@ -364,16 +395,30 @@ export async function deleteProduct(req, res) {
 export async function getAllOrders(_, res) {
   try {
     const orders = await Order.find()
-      // 1. Забираем данные пользователя
       .populate("user", "firstName lastName email phone imageUrl")
-      // 2. Забираем данные о товарах
       .populate("orderItems.product")
       .sort({ createdAt: -1 })
-      .limit(10);
+      .limit(50);
 
-    res.status(200).json({ orders });
+    const orderIds = orders.map((o) => o._id);
+    const returnRequests = await ReturnRequest.find({
+      order: { $in: orderIds },
+    });
+
+    const returnStatusMap = {};
+    returnRequests.forEach((r) => {
+      returnStatusMap[r.order.toString()] = r.status;
+    });
+
+    const ordersWithStatus = orders.map((order) => ({
+      ...order.toObject(),
+      returnStatus: returnStatusMap[order._id.toString()] || null,
+      hasReturnRequested: !!returnStatusMap[order._id.toString()],
+    }));
+
+    res.status(200).json({ orders: ordersWithStatus });
   } catch (error) {
-    console.error("Ошибка в getAllOrders:", error);
+    console.error("💥 Ошибка в getAllOrders:", error);
     res.status(500).json({ message: "Не удалось загрузить список заказов" });
   }
 }
@@ -421,7 +466,7 @@ export async function updateOrderStatus(req, res) {
       order,
     });
   } catch (error) {
-    console.error("Ошибка в updateOrderStatus:", error);
+    console.error("💥 Ошибка в updateOrderStatus:", error);
     res.status(500).json({
       message: "Не удалось обновить статус заказа",
       error: error.message,
@@ -437,7 +482,7 @@ export async function getAllCustomers(_, res) {
     const customers = await User.find().sort({ createdAt: -1 });
     res.status(200).json({ customers });
   } catch (error) {
-    console.error("Ошибка в getAllCustomers:", error);
+    console.error("💥 Ошибка в getAllCustomers:", error);
     res.status(500).json({
       message: "Не удалось загрузить список покупателей",
       error: error.message,
@@ -520,7 +565,7 @@ export async function updateCustomer(req, res) {
 
     res.status(200).json({ message: "Данные пользователя обновлены", user });
   } catch (error) {
-    console.error("Ошибка в updateCustomer:", error);
+    console.error("💥 Ошибка в updateCustomer:", error);
     res.status(500).json({
       message: "Не удалось обновить пользователя",
       error: error.message,
@@ -561,7 +606,7 @@ export async function deleteCustomer(req, res) {
 
     res.status(200).json({ message: "Пользователь успешно удален" });
   } catch (error) {
-    console.error("Ошибка в deleteCustomer:", error);
+    console.error("💥 Ошибка в deleteCustomer:", error);
     res.status(500).json({
       message: "Не удалось удалить пользователя",
       error: error.message,
@@ -648,7 +693,7 @@ export async function getDashboardStats(_, res) {
       },
     });
   } catch (error) {
-    console.error("Ошибка в getDashboardStats:", error);
+    console.error("💥 Ошибка в getDashboardStats:", error);
     res.status(500).json({
       message: "Не удалось загрузить статистику",
       error: error.message,
@@ -664,7 +709,7 @@ export async function getAllBrands(_, res) {
     const brands = await Brand.find().sort({ name: 1 });
     res.status(200).json(brands);
   } catch (error) {
-    console.error("Ошибка в getAllBrands:", error);
+    console.error("💥 Ошибка в getAllBrands:", error);
     res.status(500).json({ message: "Не удалось загрузить бренды" });
   }
 }
@@ -693,7 +738,7 @@ export async function createBrand(req, res) {
 
     res.status(201).json({ message: "Бренд успешно создан", brand });
   } catch (error) {
-    console.error("Ошибка в createBrand:", error);
+    console.error("💥 Ошибка в createBrand:", error);
     res.status(500).json({ message: "Ошибка при создании бренда" });
   }
 }
@@ -725,7 +770,7 @@ export async function updateBrand(req, res) {
     await brand.save();
     res.status(200).json({ message: "Бренд успешно обновлен", brand });
   } catch (error) {
-    console.error("Ошибка в updateBrand:", error);
+    console.error("💥 Ошибка в updateBrand:", error);
     res.status(500).json({ message: "Ошибка при обновлении бренда" });
   }
 }
@@ -747,7 +792,7 @@ export async function deleteBrand(req, res) {
 
     res.status(200).json({ message: "Бренд успешно удален" });
   } catch (error) {
-    console.error("Ошибка в deleteBrand:", error);
+    console.error("💥 Ошибка в deleteBrand:", error);
     res.status(500).json({ message: "Ошибка при удалении бренда" });
   }
 }
@@ -760,6 +805,7 @@ export async function getAllCoupons(req, res) {
     const coupons = await Coupon.find().sort({ createdAt: -1 });
     res.json(coupons);
   } catch (error) {
+    console.error("💥 Ошибка в getAllCoupons:", error);
     res.status(500).json({ message: error.message });
   }
 }
@@ -774,6 +820,7 @@ export async function createCoupon(req, res) {
     const coupon = await Coupon.create(req.body);
     res.status(201).json(coupon);
   } catch (error) {
+    console.error("💥 Ошибка в createCoupon:", error);
     res.status(500).json({ message: error.message });
   }
 }
@@ -784,6 +831,7 @@ export async function deleteCoupon(req, res) {
     await Coupon.findByIdAndDelete(req.params.id);
     res.json({ message: "Удалено" });
   } catch (error) {
+    console.error("💥 Ошибка в deleteCoupon:", error);
     res.status(500).json({ message: error.message });
   }
 }
@@ -800,6 +848,7 @@ export async function toggleCouponActive(req, res) {
       res.status(404).json({ message: "Не найдено" });
     }
   } catch (error) {
+    console.error("💥 Ошибка в toggleCouponActive:", error);
     res.status(500).json({ message: error.message });
   }
 }
@@ -810,13 +859,11 @@ export async function updateCoupon(req, res) {
     const { id } = req.params;
     const { code } = req.body;
 
-    // Проверяем, существует ли купон
     const coupon = await Coupon.findById(id);
     if (!coupon) {
       return res.status(404).json({ message: "Купон не найден" });
     }
 
-    // Если код меняется, проверяем уникальность
     if (code && code !== coupon.code) {
       const existing = await Coupon.findOne({ code });
       if (existing) {
@@ -824,7 +871,6 @@ export async function updateCoupon(req, res) {
       }
     }
 
-    // Обновляем поля
     const updatedCoupon = await Coupon.findByIdAndUpdate(id, req.body, {
       new: true,
       runValidators: true,
@@ -832,6 +878,7 @@ export async function updateCoupon(req, res) {
 
     res.json(updatedCoupon);
   } catch (error) {
+    console.error("💥 Ошибка в updateCoupon:", error);
     res.status(500).json({ message: error.message });
   }
 }
@@ -842,11 +889,23 @@ export async function updateCoupon(req, res) {
 export async function getAllReturns(req, res) {
   try {
     const returns = await ReturnRequest.find()
-      .populate("user", "firstName lastName email")
-      .populate("order", "clerkId totalPrice")
+      .populate("user", "firstName lastName email imageUrl")
+      .populate({
+        path: "order",
+        select: "clerkId totalPrice",
+      })
+      .populate({
+        path: "items.product",
+        select: "name images brand",
+        populate: {
+          path: "brand",
+          select: "name",
+        },
+      })
       .sort({ createdAt: -1 });
     res.json(returns);
   } catch (error) {
+    console.error("💥 Ошибка в getAllReturns:", error);
     res.status(500).json({ message: error.message });
   }
 }
@@ -862,6 +921,7 @@ export async function updateReturnStatus(req, res) {
     );
     res.json(updated);
   } catch (error) {
+    console.error("💥 Ошибка в updateReturnStatus:", error);
     res.status(500).json({ message: error.message });
   }
 }

@@ -2,7 +2,7 @@ import { Cart } from "../models/cart.model.js";
 import { Coupon } from "../models/coupon.model.js";
 import { Product } from "../models/product.model.js";
 
-// Получение корзины текущего пользователя
+// Получение корзины пользователя
 export async function getCart(req, res) {
   try {
     const user = req.user;
@@ -24,7 +24,7 @@ export async function getCart(req, res) {
     }
     res.status(200).json({ cart });
   } catch (error) {
-    console.error("Ошибка в getCart:", error);
+    console.error("💥 Ошибка в getCart:", error);
     res.status(500).json({
       message: "Не удалось загрузить корзину",
       error: error.message,
@@ -47,13 +47,13 @@ export async function addToCart(req, res) {
     // 1.1 Определяем вариант (если есть variants)
     let currentStock = product.stock;
 
-    // Если volume передан, ищем вариант. Если нет - берем дефолтный (root)
-    // Но теперь мы хотим форсировать variants если они есть
     if (product.variants && product.variants.length > 0) {
       if (!volume) {
         return res.status(400).json({ error: "Необходимо выбрать объем" });
       }
-      const variant = product.variants.find(v => v.volume === parseInt(volume));
+      const variant = product.variants.find(
+        (v) => v.volume === parseInt(volume)
+      );
       if (!variant) {
         return res.status(404).json({ error: "Такой объем не найден" });
       }
@@ -77,22 +77,18 @@ export async function addToCart(req, res) {
 
     // 3. Проверяем, есть ли такой же товар C ТАКИМ ЖЕ ОБЪЕМОМ
     const itemIndex = cart.items.findIndex(
-      (item) => item.product.toString() === productId && (!volume || item.volume === parseInt(volume))
+      (item) =>
+        item.product.toString() === productId &&
+        (!volume || item.volume === parseInt(volume))
     );
 
     if (itemIndex > -1) {
-      // Товар уже есть: увеличиваем количество
       const newQuantity = cart.items[itemIndex].quantity + 1;
-
-      // Проверка стока для нового количества
-      // (currentStock мы уже вычислили выше для конкретного варианта)
       if (currentStock < newQuantity) {
         return res.status(400).json({ error: "Закончился товар" });
       }
       cart.items[itemIndex].quantity = newQuantity;
     } else {
-      // Товара нет: добавляем новый
-      // Если volume не передан (legacy product без вариантов), берем product.volume
       const itemVolume = volume ? parseInt(volume) : product.volume;
       cart.items.push({ product: productId, quantity, volume: itemVolume });
     }
@@ -108,7 +104,7 @@ export async function addToCart(req, res) {
 
     res.status(200).json({ message: "Товар добавлен в корзину", cart });
   } catch (error) {
-    console.error("Ошибка в addToCart:", error);
+    console.error("💥 Ошибка в addToCart:", error);
     res.status(500).json({
       message: "Не удалось добавить товар",
       error: error.message,
@@ -134,35 +130,21 @@ export async function updateQuantity(req, res) {
       return res.status(400).json({ error: "Корзина не найдена" });
     }
 
-    // Ищем товар внутри массива items
     const itemIndex = cart.items.findIndex(
       (item) => item.product.toString() === productId
     );
-    // TODO: Здесь есть проблема. itemIndex найдет ПЕРВЫЙ попавшийся товар с этим ID.
-    // А у нас может быть один товар с РАЗНЫМИ объемами.
-    // Правильнее было бы передавать cartItemId, но мы передаем productId.
-    // Для простоты пока предположим, что фронт шлёт и productId и volume (или cartItemId).
-    // Но сигнатура функции updateQuantity(req, res) использует productId из params.
-    // Это ограничение текущего API.
-    // План Б: мы можем найти товар в корзине, и если их несколько, нам нужно знать какой именно обновлять.
-    // Или же (костыль) - мы считаем, что фронт обновляет тот variant, который "подразумевается".
 
-    // !!! КРИТИЧНО: API updateQuantity принимает productId, но не volume. 
-    // Если в корзине 2 варианта одного товара, мы не знаем какой обновлять.
-    // Я добавлю volume в req.body для уточнения.
-
-    const { volume } = req.body; // Добавляем volume в body для уточнения
+    const { volume } = req.body;
 
     const cartItem = cart.items.find(
-      (item) => item.product.toString() === productId && (!volume || item.volume === parseInt(volume))
+      (item) =>
+        item.product.toString() === productId &&
+        (!volume || item.volume === parseInt(volume))
     );
 
     if (!cartItem) {
       return res.status(404).json({ error: "Товар не найден в корзине" });
     }
-
-    // Получаем индекс для обновления (хотя можно менять по ссылке, но mongoose иногда капризничает, надежнее через индекс если менять массив)
-    // Но мы уже нашли объект, изменим его. 
 
     // Проверяем наличие на складе перед изменением
     const product = await Product.findById(productId);
@@ -173,7 +155,9 @@ export async function updateQuantity(req, res) {
     let currentStock = product.stock;
     if (product.variants && product.variants.length > 0) {
       // Ищем вариант соответствующий товару в корзине
-      const variant = product.variants.find(v => v.volume === cartItem.volume);
+      const variant = product.variants.find(
+        (v) => v.volume === cartItem.volume
+      );
       if (variant) {
         currentStock = variant.stock;
       }
@@ -184,12 +168,9 @@ export async function updateQuantity(req, res) {
         .status(400)
         .json({ error: `Недостаточно товара. Доступно: ${currentStock}` });
     }
-
-    // Обновляем количество
     cartItem.quantity = quantity;
     await cart.save();
 
-    // Подгружаем данные для ответа
     await cart.populate({
       path: "items.product",
       select: "name price images category brand volume variants",
@@ -198,7 +179,7 @@ export async function updateQuantity(req, res) {
 
     res.status(200).json({ message: "Количество обновлено", cart });
   } catch (error) {
-    console.error("Ошибка в updateQuantity:", error);
+    console.error("💥 Ошибка в updateQuantity:", error);
     res.status(500).json({
       message: "Не удалось изменить количество",
       error: error.message,
@@ -220,13 +201,14 @@ export async function removeFromCart(req, res) {
     }
 
     if (volume) {
-      // Удаляем конкретный вариант
       cart.items = cart.items.filter(
         (item) =>
-          !(item.product.toString() === productId && item.volume === parseInt(volume))
+          !(
+            item.product.toString() === productId &&
+            item.volume === parseInt(volume)
+          )
       );
     } else {
-      // Удаляем все варианты этого товара (legacy/fallback)
       cart.items = cart.items.filter(
         (item) => item.product.toString() !== productId
       );
@@ -234,7 +216,6 @@ export async function removeFromCart(req, res) {
 
     await cart.save();
 
-    // Подгружаем данные для ответа
     await cart.populate({
       path: "items.product",
       select: "name price images category brand volume variants",
@@ -243,7 +224,7 @@ export async function removeFromCart(req, res) {
 
     res.status(200).json({ message: "Товар удалён из корзины", cart });
   } catch (error) {
-    console.error("Ошибка в removeFromCart:", error);
+    console.error("💥 Ошибка в removeFromCart:", error);
     res.status(500).json({
       message: "Не удалось удалить товар",
       error: error.message,
@@ -267,7 +248,7 @@ export const clearCart = async (req, res) => {
 
     res.status(200).json({ message: "Корзина очищена", cart });
   } catch (error) {
-    console.error("Ошибка в clearCart:", error);
+    console.error("💥 Ошибка в clearCart:", error);
     res.status(500).json({
       message: "Не удалось очистить корзину",
       error: error.message,
@@ -337,7 +318,7 @@ export async function applyCoupon(req, res) {
 
     res.status(200).json({ message: "Купон успешно применен", cart });
   } catch (error) {
-    console.error("Ошибка applyCoupon:", error);
+    console.error("💥 Ошибка applyCoupon:", error);
     res.status(500).json({ message: "Ошибка сервера", error: error.message });
   }
 }
@@ -362,6 +343,7 @@ export async function removeCoupon(req, res) {
 
     res.status(200).json({ message: "Купон удален", cart });
   } catch (error) {
+    console.error("💥 Ошибка removeCoupon:", error);
     res.status(500).json({ message: "Ошибка сервера", error: error.message });
   }
 }

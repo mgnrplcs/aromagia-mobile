@@ -92,7 +92,7 @@ export async function createReview(req, res) {
 
     res.status(200).json({ message: "Отзыв успешно опубликован", review });
   } catch (error) {
-    console.error("Ошибка в createReview:", error);
+    console.error("💥 Ошибка в createReview:", error);
     res.status(500).json({
       message: "Не удалось опубликовать отзыв",
       error: error.message,
@@ -132,7 +132,7 @@ export async function deleteReview(req, res) {
 
     res.status(200).json({ message: "Отзыв успешно удален" });
   } catch (error) {
-    console.error("Ошибка в deleteReview:", error);
+    console.error("💥 Ошибка в deleteReview:", error);
     res.status(500).json({
       message: "Не удалось удалить рейтинг",
       error: error.message,
@@ -145,12 +145,12 @@ export async function getProductReviews(req, res) {
   try {
     const { productId } = req.params;
     const reviews = await Review.find({ productId })
-      .populate("userId", "firstName lastName imageUrl")
+      .populate("userId", "firstName lastName imageUrl clerkId")
       .sort({ createdAt: -1 });
 
     res.status(200).json({ reviews });
   } catch (error) {
-    console.error("Ошибка в getProductReviews:", error);
+    console.error("💥 Ошибка в getProductReviews:", error);
     res.status(500).json({ message: "Не удалось загрузить отзывы" });
   }
 }

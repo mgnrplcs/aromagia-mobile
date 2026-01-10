@@ -7,7 +7,7 @@ function AccessDeniedPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-base-200 relative overflow-hidden">
-      {/* 1. Блок заголовка */}
+      {/* 1. Заголовок */}
       <div className="text-center mb-7 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="flex items-center justify-center text-primary text-9xl font-black leading-none select-none drop-shadow-sm">
           <span>4</span>
@@ -57,7 +57,7 @@ function AccessDeniedPage() {
         </div>
       </div>
 
-      {/* 3. Блок техподдержки (справа внизу) */}
+      {/* 3. Блок техподдержки  */}
       <div className="absolute bottom-6 right-6 flex items-center gap-3 opacity-70 transition-opacity">
         <div className="flex flex-col items-end gap-2">
           <a

@@ -292,15 +292,13 @@ const AddressFormModal = ({
                     <TouchableOpacity
                       key={tag}
                       onPress={() => onFormChange({ ...addressForm, label: tag })}
-                      className={`px-5 py-2 rounded-xl border ${
-                        isSelected ? 'bg-black border-black' : 'bg-white border-gray-200'
-                      }`}
+                      className={`px-5 py-2 rounded-xl border ${isSelected ? 'bg-black border-black' : 'bg-white border-gray-200'
+                        }`}
                       activeOpacity={0.7}
                     >
                       <Text
-                        className={`font-inter-medium tracking-wide text-base ${
-                          isSelected ? 'text-white' : 'text-gray-500'
-                        }`}
+                        className={`font-inter-medium tracking-wide text-base ${isSelected ? 'text-white' : 'text-gray-500'
+                          }`}
                       >
                         {tag}
                       </Text>
@@ -391,9 +389,8 @@ const AddressFormModal = ({
             </View>
 
             <TouchableOpacity
-              className={`rounded-2xl h-14 items-center justify-center shadow-sm mb-2 ${
-                isLoading ? 'bg-gray-300' : 'bg-black'
-              }`}
+              className={`rounded-2xl h-14 items-center justify-center shadow-sm mb-2 ${isLoading ? 'bg-gray-300' : 'bg-blue-500'
+                }`}
               activeOpacity={0.8}
               onPress={onSave}
               disabled={isLoading}

@@ -1,7 +1,6 @@
 import useSocialAuth from '@/hooks/useSocialAuth';
 import { ActivityIndicator, Image, Text, TouchableOpacity, View, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// Импорт LinearGradient удален
 
 const AuthScreen = () => {
   const { loadingStrategy, handleSocialAuth } = useSocialAuth();

@@ -7,12 +7,11 @@ export async function getProductById(req, res) {
     const { id } = req.params;
     const product = await Product.findById(id).populate("brand");
 
-    // Если в базе нет товара с таким ID
     if (!product) return res.status(404).json({ message: "Товар не найден" });
 
     res.status(200).json({ product });
   } catch (error) {
-    console.error("Ошибка в getProductById:", error);
+    console.error("💥 Ошибка в getProductById:", error);
     res.status(500).json({
       message: "Не удалось получить информацию о товаре",
       error: error.message,
@@ -78,14 +77,14 @@ export async function getRecommendedProducts(req, res) {
       );
     }
 
-    // Фолбэк (если заказов еще нет — просто берем последние добавленные)
+    // Если заказов еще нет — берем последние добавленные
     if (products.length === 0) {
       products = await Product.find().limit(4).populate("brand", "name logo");
     }
 
     res.status(200).json({ products });
   } catch (error) {
-    console.error("Ошибка в getRecommendedProducts:", error);
+    console.error("💥 Ошибка в getRecommendedProducts:", error);
     res.status(500).json({
       message: "Не удалось загрузить рекомендации",
       error: error.message,
