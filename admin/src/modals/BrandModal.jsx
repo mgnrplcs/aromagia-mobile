@@ -10,7 +10,7 @@ export default function BrandModal({
 }) {
   const fileInputRef = useRef(null);
   const [name, setName] = useState("");
-  const [description, setDescription] = useState(""); // 1. Новое состояние
+  const [description, setDescription] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
 
@@ -18,12 +18,12 @@ export default function BrandModal({
     if (isOpen) {
       if (brandToEdit) {
         setName(brandToEdit.name || "");
-        setDescription(brandToEdit.description || ""); // 2. Заполняем при редактировании
+        setDescription(brandToEdit.description || "");
         setImagePreview(brandToEdit.logo || "");
         setImageFile(null);
       } else {
         setName("");
-        setDescription(""); // 2. Очищаем при создании
+        setDescription("");
         setImagePreview("");
         setImageFile(null);
       }
@@ -48,7 +48,7 @@ export default function BrandModal({
     e.preventDefault();
     const formData = new FormData();
     formData.append("name", name);
-    formData.append("description", description); // 4. Добавляем в FormData
+    formData.append("description", description);
     if (imageFile) {
       formData.append("image", imageFile);
     }
@@ -76,7 +76,7 @@ export default function BrandModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-3">
           {/* Логотип */}
           <div className="form-control w-full">
-            <label className="label font-bold text-sm text-base-content/80 mb-1">
+            <label className="label font-semibold text-sm text-base-content/80 mb-1">
               Логотип
             </label>
 
@@ -146,7 +146,7 @@ export default function BrandModal({
 
           {/* Название */}
           <div className="form-control w-full">
-            <label className="label font-bold text-sm text-base-content/80 mb-1">
+            <label className="label font-semibold text-sm text-base-content/80 mb-1">
               Название
             </label>
             <div className="relative">
@@ -169,7 +169,7 @@ export default function BrandModal({
 
           {/* 3. Описание (Новое поле) */}
           <div className="form-control w-full">
-            <label className="label font-bold text-sm text-base-content/80 mb-1">
+            <label className="label font-semibold text-sm text-base-content/80 mb-1">
               Описание
             </label>
             <textarea

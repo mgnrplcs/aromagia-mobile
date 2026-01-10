@@ -27,28 +27,44 @@ export async function createOrder(req, res) {
     // 3.  Валидация товаров, стока и подсчет реальной суммы
     for (const item of orderItems) {
       // Ищем товар внутри сессии
-      const product = await Product.findById(item.product._id).session(session);
+      const product = await Product.findById(item.product._id).session(session).populate('brand');
       if (!product) {
         await session.abortTransaction();
         session.endSession();
         return res.status(404).json({ error: `Товар ${item.name} не найден` });
       }
-      if (product.stock < item.quantity) {
+
+      let currentPrice = product.price;
+      let currentStock = product.stock;
+
+      // Логика вариантов
+      if (product.variants && product.variants.length > 0 && item.volume) {
+        const variant = product.variants.find(v => v.volume === parseInt(item.volume));
+        if (variant) {
+          currentPrice = variant.price;
+          currentStock = variant.stock;
+        }
+      }
+
+      if (currentStock < item.quantity) {
         await session.abortTransaction();
         session.endSession();
         return res.status(400).json({
-          error: `Недостаточно товара "${item.name}" на складе (Остаток: ${product.stock})`,
+          error: `Недостаточно товара "${item.name}" (Объем: ${item.volume || 'стандарт'}) на складе (Остаток: ${currentStock})`,
         });
       }
-      // Считаем сумму по цене из БАЗЫ
-      serverSubtotal += product.price * item.quantity;
+
+      // Считаем сумму по цене из БАЗЫ (варианта или основной)
+      serverSubtotal += currentPrice * item.quantity;
 
       finalOrderItems.push({
         product: product._id,
         name: product.name,
+        brand: product.brand?.name || '',
         quantity: item.quantity,
-        price: product.price,
+        price: currentPrice,
         image: item.image || product.images[0],
+        volume: item.volume, // Сохраняем объем в заказе
       });
     }
 
@@ -99,13 +115,21 @@ export async function createOrder(req, res) {
 
     // 6. Обновление стока товаров
     for (const item of orderItems) {
-      await Product.findByIdAndUpdate(
-        item.product._id,
-        {
-          $inc: { stock: -item.quantity },
-        },
-        { session }
-      );
+      const product = await Product.findById(item.product._id).session(session);
+
+      if (product) {
+        if (product.variants && product.variants.length > 0 && item.volume) {
+          // Обновляем сток варианта
+          const variant = product.variants.find(v => v.volume === parseInt(item.volume));
+          if (variant) {
+            variant.stock -= item.quantity;
+          }
+        } else {
+          // Обновляем общий сток (legacy)
+          product.stock -= item.quantity;
+        }
+        await product.save({ session });
+      }
     }
 
     // 6. Обновление счетчика купон
@@ -146,7 +170,10 @@ export async function getUserOrders(req, res) {
 
     // 1. Получаем заказы
     const orders = await Order.find({ user: user._id })
-      .populate("orderItems.product")
+      .populate({
+        path: "orderItems.product",
+        populate: { path: "brand", select: "name" },
+      })
       .sort({ createdAt: -1 });
 
     // 2. Проверка: был ли товар оценен пользователем

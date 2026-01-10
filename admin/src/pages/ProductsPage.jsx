@@ -9,6 +9,7 @@ import {
   Filter,
   Package,
   Zap,
+  Star,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
@@ -201,6 +202,48 @@ function ProductsPage() {
           </div>
         ) : (
           filteredProducts.map((product) => {
+            // -- Логика отображения вариантов --
+            const variants = product.variants || [];
+            const hasVariants = variants.length > 0;
+
+            let displayPrice = "0 ₽";
+            let displayStock = "0 шт.";
+            let displayVolume = "—";
+
+            if (hasVariants) {
+              // 1. Цена 
+              const prices = variants.map((v) => v.price).filter((p) => !!p);
+              if (prices.length > 0) {
+                const min = Math.min(...prices);
+                const max = Math.max(...prices);
+                displayPrice =
+                  min === max
+                    ? `${min.toLocaleString("ru-RU")} ₽`
+                    : `${min.toLocaleString("ru-RU")} – ${max.toLocaleString(
+                      "ru-RU"
+                    )} ₽`;
+              }
+
+              // 2. Склад 
+              const totalStock = variants.reduce(
+                (acc, v) => acc + (v.stock || 0),
+                0
+              );
+              displayStock = `${totalStock} шт.`;
+
+              // 3. Объем 
+              displayVolume =
+                variants
+                  .map((v) => v.volume)
+                  .sort((a, b) => a - b)
+                  .join(" / ") + " мл";
+            } else {
+              displayPrice =
+                (product.price || 0).toLocaleString("ru-RU") + " ₽";
+              displayStock = (product.stock || 0) + " шт.";
+              displayVolume = (product.volume || 0) + " мл";
+            }
+
             return (
               <div
                 key={product._id}
@@ -208,12 +251,12 @@ function ProductsPage() {
               >
                 <div className="card-body p-5">
                   <div className="flex flex-col sm:flex-row gap-5 items-center sm:items-start">
-                    {/* Аватар */}
-                    <div className="avatar shrink-0">
+                    {/* Аватар + Рейтинг */}
+                    <div className="shrink-0 flex flex-col items-center gap-2">
                       <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl ring-1 ring-base-200 bg-base-50 flex items-center justify-center overflow-hidden">
                         {/* Бейджик ХИТ  */}
                         {product.isBestseller && (
-                          <div className="absolute top-1.25 left-1.5 z-10 badge badge-secondary text-white tracking-widest text-[8px] h-5 px-2 font-bold gap-0.5 shadow-sm border-none">
+                          <div className="absolute top-1.25 left-1.5 z-10 rounded-md badge badge-secondary text-white tracking-widest text-[8px] h-5 px-2 font-bold gap-1 shadow-sm border-none">
                             <Zap className="w-2 h-2 fill-current" />
                             ХИТ
                           </div>
@@ -228,12 +271,28 @@ function ProductsPage() {
                           <ImageIcon className="text-base-content/20 w-8 h-8" />
                         )}
                       </div>
+
+                      {/* Рейтинг (звездочки) */}
+                      <div
+                        className="flex items-center gap-1 bg-base-100"
+                        title={`Рейтинг: ${product.averageRating || 0}`}
+                      >
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`w-3.5 h-3.5 ${(product.averageRating || 0) >= star
+                              ? "fill-base-200 text-white"
+                              : "fill-base-300 text-base-300"
+                              }`}
+                          />
+                        ))}
+                      </div>
                     </div>
 
                     {/* Информация */}
                     <div className="flex-1 min-w-0 w-full">
                       <div className="mb-1">
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-baseline gap-2 flex-wrap">
                           <h3 className="font-bold text-lg truncate leading-tight">
                             {product.name}
                           </h3>
@@ -257,36 +316,36 @@ function ProductsPage() {
                         </div>
 
                         {/* Концентрация • Пол */}
-                        <p className="text-xs text-base-content/60 mt-1">
+                        <p className="text-xs text-base-content/60 mt-0.75">
                           {product.concentration} • {product.gender}
                         </p>
                       </div>
 
                       {/* Нижний блок: Характеристики */}
-                      <div className="flex gap-8 border-t border-base-100 pt-2">
+                      <div className="flex gap-7 border-t border-base-100 pt-2">
                         <div>
-                          <p className="text-[11px] opacity-60 font-semibold uppercase tracking-wider">
+                          <p className="text-[11px] opacity-60 font-bold uppercase tracking-widest">
                             Цена
                           </p>
                           {/* Шрифт extrabold для большей жирности */}
                           <p className="font-extrabold text-lg">
-                            {product.price?.toLocaleString("ru-RU")} ₽
+                            {displayPrice}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[11px] opacity-60 font-bold uppercase tracking-wider">
+                          <p className="text-[11px] opacity-60 font-bold uppercase tracking-widest">
                             Склад
                           </p>
                           <p className="font-extrabold text-lg">
-                            {product.stock} шт.
+                            {displayStock}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[11px] opacity-60 font-bold uppercase tracking-wider">
+                          <p className="text-[11px] opacity-60 font-bold uppercase tracking-widest">
                             Объем
                           </p>
                           <p className="font-extrabold text-lg">
-                            {product.volume} мл
+                            {displayVolume}
                           </p>
                         </div>
                       </div>

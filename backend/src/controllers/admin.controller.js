@@ -30,18 +30,43 @@ export async function createProduct(req, res) {
       scentFamily,
       concentration,
       notesPyramid,
+      ingredients,
       isBestseller,
+      variants,
     } = req.body;
     const files = req.files;
 
     // 1. Валидация обязательных полей
     const missingFields = [];
+    if (!notesPyramid) missingFields.push("Пирамида нот");
+
+    let parsedVariants = [];
+    if (variants) {
+      if (typeof variants === "string") {
+        try {
+          parsedVariants = JSON.parse(variants);
+        } catch (e) { }
+      } else {
+        parsedVariants = variants;
+      }
+    }
+
+    if (parsedVariants.length > 0) {
+      if (!price) req.body.price = parsedVariants[0].price;
+      if (!volume) req.body.volume = parsedVariants[0].volume;
+      if (!stock) req.body.stock = parsedVariants[0].stock;
+    }
+
+    const checkPrice = price || (parsedVariants.length > 0 ? parsedVariants[0].price : null);
+    const checkVolume = volume || (parsedVariants.length > 0 ? parsedVariants[0].volume : null);
+    const checkStock = stock !== undefined ? stock : (parsedVariants.length > 0 ? parsedVariants[0].stock : null);
+
     if (!name) missingFields.push("Название");
     if (!brand) missingFields.push("Бренд");
     if (!description) missingFields.push("Описание");
-    if (!price) missingFields.push("Цена");
-    if (!volume) missingFields.push("Объем");
-    if (!stock) missingFields.push("Наличие");
+    if (!checkPrice) missingFields.push("Цена");
+    if (!checkVolume) missingFields.push("Объем");
+    if (checkStock === null || checkStock === undefined) missingFields.push("Наличие");
     if (!category) missingFields.push("Категория");
     if (!gender) missingFields.push("Пол");
     if (!scentFamily) missingFields.push("Семейство аромата");
@@ -73,7 +98,7 @@ export async function createProduct(req, res) {
     if (typeof notesPyramid === "string") {
       try {
         parsedNotes = JSON.parse(notesPyramid);
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (parsedNotes) {
@@ -101,6 +126,8 @@ export async function createProduct(req, res) {
     const imageUrls = uploadResults.map((result) => result.secure_url);
 
     // 5. Создание записи в БД
+    const article = req.body.article || `AR-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+
     const product = await Product.create({
       name,
       brand,
@@ -116,6 +143,9 @@ export async function createProduct(req, res) {
       notesTags,
       images: imageUrls,
       isBestseller: String(isBestseller) === "true",
+      variants: parsedVariants,
+      ingredients: ingredients || "",
+      article,
     });
 
     res.status(201).json({
@@ -168,14 +198,65 @@ export async function updateProduct(req, res) {
       "gender",
       "scentFamily",
       "concentration",
+      "ingredients",
     ];
     simpleFields.forEach((field) => {
       if (body[field]) product[field] = body[field];
     });
 
-    if (body.price !== undefined) product.price = parseFloat(body.price);
-    if (body.volume !== undefined) product.volume = parseInt(body.volume);
-    if (body.stock !== undefined) product.stock = parseInt(body.stock);
+    // Обработка вариантов
+    if (body.variants) {
+      let parsedVariants = body.variants;
+      if (typeof parsedVariants === "string") {
+        try {
+          parsedVariants = JSON.parse(parsedVariants);
+        } catch (e) {
+          console.error("Ошибка парсинга вариантов:", e);
+        }
+      }
+      product.variants = parsedVariants;
+    }
+
+    // Вспомогательная функция для безопасного парсинга чисел
+    const safeParseFloat = (val) => {
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? null : parsed;
+    };
+    const safeParseInt = (val) => {
+      const parsed = parseInt(val);
+      return isNaN(parsed) ? null : parsed;
+    };
+
+    const hasVariants = product.variants && product.variants.length > 0;
+    const firstVariant = hasVariants ? product.variants[0] : null;
+
+    if (body.price !== undefined) {
+      const parsedPrice = safeParseFloat(body.price);
+      if (parsedPrice !== null) {
+        product.price = parsedPrice;
+      } else if (hasVariants) {
+        product.price = firstVariant.price;
+      }
+    }
+
+    if (body.volume !== undefined) {
+      const parsedVolume = safeParseInt(body.volume);
+      if (parsedVolume !== null) {
+        product.volume = parsedVolume;
+      } else if (hasVariants) {
+        product.volume = firstVariant.volume;
+      }
+    }
+
+    if (body.stock !== undefined) {
+      const parsedStock = safeParseInt(body.stock);
+      if (parsedStock !== null) {
+        product.stock = parsedStock;
+      } else if (hasVariants) {
+        product.stock = firstVariant.stock;
+      }
+    }
+
     if (body.isBestseller !== undefined)
       product.isBestseller = String(body.isBestseller) === "true";
 
@@ -185,7 +266,7 @@ export async function updateProduct(req, res) {
       if (typeof parsedNotes === "string") {
         try {
           parsedNotes = JSON.parse(parsedNotes);
-        } catch (e) {}
+        } catch (e) { }
       }
       product.notesPyramid = parsedNotes;
 
@@ -206,6 +287,11 @@ export async function updateProduct(req, res) {
     }
 
     // Обработка фото (если загрузили новые)
+
+    if (!product.article) {
+      product.article = `AR-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+    }
+
     if (files && files.length > 0) {
       if (files.length > 8) {
         return res.status(400).json({

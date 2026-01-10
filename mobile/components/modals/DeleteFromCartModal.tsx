@@ -8,7 +8,8 @@ interface RemoveItemModalProps {
   visible: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  product: Product | null; // Заменили productName на целый объект Product для красивой карточки
+  product: Product | null;
+  volume?: number;
 }
 
 export default function RemoveItemModal({
@@ -16,6 +17,7 @@ export default function RemoveItemModal({
   onClose,
   onConfirm,
   product,
+  volume,
 }: RemoveItemModalProps) {
   if (!product) return null;
 
@@ -67,6 +69,13 @@ export default function RemoveItemModal({
                 >
                   {product.name}
                 </Text>
+                {volume && (
+                  <View className="bg-black self-start px-1.5 py-0.5 rounded-md mt-1 shadow-sm">
+                    <Text className="text-white text-[8px] font-inter-extrabold tracking-wide uppercase">
+                      {volume} МЛ
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 

@@ -196,31 +196,21 @@ function CouponsPage() {
                     <th className="w-85">Скидка</th>
                     <th>Использование</th>
                     <th>Срок действия</th>
-                    <th className="w-40">Статус</th>
+                    <th className="w-50">Статус</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredCoupons.map((coupon) => {
+                    // Вычисления оставляем для тултипа и проверки истечения срока (красный текст даты)
                     const isExpired = new Date(coupon.validUntil) < new Date();
                     const isLimitReached =
                       coupon.maxUsage > 0 &&
                       coupon.usedCount >= coupon.maxUsage;
 
-                    // Определяем состояние активности
-                    let statusColor = "text-success";
-                    let statusText = "Активен";
-
-                    if (!coupon.isActive) {
-                      statusColor = "text-base-content/40";
-                      statusText = "Выключен";
-                    } else if (isExpired) {
-                      statusColor = "text-error";
-                      statusText = "Истек";
-                    } else if (isLimitReached) {
-                      statusColor = "text-warning";
-                      statusText = "Лимит исчерпан";
-                    }
+                    // Упрощенная логика статуса:
+                    const statusText = coupon.isActive ? "Активен" : "Выключен";
+                    const statusColor = coupon.isActive ? "text-success" : "text-base-content/40";
 
                     return (
                       <tr
@@ -284,9 +274,8 @@ function CouponsPage() {
                             </div>
                             <div className="flex flex-col">
                               <span
-                                className={`font-medium text-sm ${
-                                  isExpired ? "text-error" : ""
-                                }`}
+                                className={`font-medium text-sm ${isExpired ? "text-error" : ""
+                                  }`}
                               >
                                 {formatDate(coupon.validUntil).split(",")[0]}
                               </span>
@@ -297,7 +286,7 @@ function CouponsPage() {
                           </div>
                         </td>
 
-                        {/* 5. Статус */}
+                        {/* 5. Статус (ИЗМЕНЕНО) */}
                         <td>
                           <div className="flex items-center gap-2">
                             <input
@@ -315,17 +304,18 @@ function CouponsPage() {
                               {statusText}
                             </div>
 
+                            {/* Подсказка (Megaphone) остается, чтобы объяснить проблему */}
                             {(isExpired || isLimitReached) &&
                               coupon.isActive && (
                                 <div
-                                  className="tooltip"
+                                  className="tooltip tooltip-left sm:tooltip-top"
                                   data-tip={
                                     isExpired
                                       ? "Срок действия истек"
                                       : "Лимит использований исчерпан"
                                   }
                                 >
-                                  <Megaphone className="w-4 h-4 text-warning" />
+                                  <Megaphone className="w-4 h-4 text-warning cursor-help" />
                                 </div>
                               )}
                           </div>

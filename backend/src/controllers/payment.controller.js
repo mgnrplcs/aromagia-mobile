@@ -34,14 +34,18 @@ export async function createPaymentIntent(req, res) {
         return res.status(404).json({ error: "Один из товаров не найден" });
       }
 
-      if (product.stock < item.quantity) {
+      // Считаем сумму с учетом вариантов
+      const variant = product.variants?.find((v) => v.volume === item.volume);
+      const unitPrice = variant ? variant.price : product.price;
+      const stock = variant ? variant.stock : product.stock;
+
+      if (stock < item.quantity) {
         return res
           .status(400)
-          .json({ error: `Недостаточно товара "${product.name}" на складе` });
+          .json({ error: `Недостаточно товара "${product.name}" (${item.volume} мл) на складе` });
       }
 
-      // Считаем сумму
-      serverSubtotal += product.price * item.quantity;
+      serverSubtotal += unitPrice * item.quantity;
     }
 
     // 3. Логика Купона
@@ -101,7 +105,7 @@ export async function createPaymentIntent(req, res) {
         clerkId: user.clerkId,
         cartId: cart._id.toString(),
         couponId: cart.coupon ? cart.coupon._id.toString() : "",
-        shippingAddress: JSON.stringify(shippingAddress).substring(0, 499),
+        shippingAddress: JSON.stringify(shippingAddress),
         discountAmount: discountAmount.toString(),
         totalPrice: total.toString(),
       },
@@ -161,21 +165,31 @@ export async function handleWebhook(req, res) {
       }
 
       // 2. Ищем корзину, чтобы перенести товары в заказ
-      const cart = await Cart.findById(cartId).populate("items.product");
+      const cart = await Cart.findById(cartId).populate({
+        path: "items.product",
+        populate: { path: "brand" },
+      });
 
       if (!cart) {
         console.error("Корзина не найдена для создания заказа!");
         return res.status(404).json({ error: "Cart not found" });
       }
 
-      // Формируем товары для заказа
-      const orderItems = cart.items.map((item) => ({
-        product: item.product._id,
-        name: item.product.name,
-        price: item.product.price,
-        quantity: item.quantity,
-        image: item.product.images?.[0] || "",
-      }));
+      // Формируем товары для заказа с учетом вариантов
+      const orderItems = cart.items.map((item) => {
+        const variant = item.product.variants?.find((v) => v.volume === item.volume);
+        const unitPrice = variant ? variant.price : item.product.price;
+
+        return {
+          product: item.product._id,
+          name: item.product.name,
+          brand: item.product.brand?.name || "",
+          price: unitPrice,
+          quantity: item.quantity,
+          image: item.product.images?.[0] || "",
+          volume: item.volume,
+        };
+      });
 
       // 3. Создаем заказ
       const order = await Order.create({
@@ -195,9 +209,18 @@ export async function handleWebhook(req, res) {
 
       // 4. Обновляем стоки товаров
       for (const item of orderItems) {
-        await Product.findByIdAndUpdate(item.product, {
-          $inc: { stock: -item.quantity },
-        });
+        if (item.volume) {
+          // Уменьшаем сток конкретного варианта
+          await Product.updateOne(
+            { _id: item.product, "variants.volume": item.volume },
+            { $inc: { "variants.$.stock": -item.quantity } }
+          );
+        } else {
+          // Уменьшаем общий сток (legacy)
+          await Product.findByIdAndUpdate(item.product, {
+            $inc: { stock: -item.quantity },
+          });
+        }
       }
 
       // 5. Если был купон, увеличиваем счетчик использования

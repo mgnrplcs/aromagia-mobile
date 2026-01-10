@@ -199,9 +199,7 @@ export default function CouponModal({
               </div>
             </div>
 
-            <div className="divider text-xs text-base-content/40 font-medium my-2 uppercase tracking-widest">
-              Ограничения
-            </div>
+            <div className="divider my-2"></div>
 
             <div className="grid grid-cols-2 gap-4">
               {/* Мин сумма заказа */}
@@ -265,11 +263,10 @@ export default function CouponModal({
             <div className="bg-base-200/50 p-4 rounded-xl border border-base-200 flex items-center justify-between mt-2">
               <div className="flex gap-3 items-center">
                 <div
-                  className={`p-2.5 rounded-xl ${
-                    isActive
-                      ? "bg-success/10 text-success"
-                      : "bg-base-300 text-base-content/40"
-                  }`}
+                  className={`p-2.5 rounded-xl ${isActive
+                    ? "bg-success/10 text-success"
+                    : "bg-base-300 text-base-content/40"
+                    }`}
                 >
                   <Info className="w-5 h-5" />
                 </div>

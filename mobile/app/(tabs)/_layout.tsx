@@ -15,7 +15,7 @@ import Animated, {
   interpolate,
   Extrapolation,
 } from 'react-native-reanimated';
-import useCart from '@/hooks/useCart'; // <--- ИМПОРТИРУЕМ ХУК КОРЗИНЫ
+import useCart from '@/hooks/useCart';
 
 // Главный компонент
 export default function TabsLayout() {

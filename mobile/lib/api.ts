@@ -31,3 +31,5 @@ export const useApi = () => {
   }, [getToken]);
   return api;
 };
+
+export default api;

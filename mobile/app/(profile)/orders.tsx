@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -19,6 +18,7 @@ import SafeScreen from '@/components/SafeScreen';
 import PageLoader from '@/components/PageLoader';
 import ErrorState from '@/components/ErrorState';
 import RatingModal from '@/components/modals/RatingModal';
+import ReturnModal from '@/components/modals/ReturnModal';
 
 // Утилиты и типы
 import { formatDate, formatPrice, getDeclension } from '@/lib/utils';
@@ -35,8 +35,14 @@ export default function OrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithReview | null>(null);
+
+  // Состояния для отзывов
   const [productRatings, setProductRatings] = useState<{ [key: string]: number }>({});
   const [productComments, setProductComments] = useState<{ [key: string]: string }>({});
+
+  // Состояние для модалки возврата
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [selectedReturnOrder, setSelectedReturnOrder] = useState<OrderWithReview | null>(null);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -44,16 +50,20 @@ export default function OrdersScreen() {
     setRefreshing(false);
   }, [refetch]);
 
+  // --- ЛОГИКА ВОЗВРАТА ---
+  const handleOpenReturn = (order: OrderWithReview) => {
+    setSelectedReturnOrder(order);
+    setShowReturnModal(true);
+  };
+
   // --- ЛОГИКА ОТЗЫВОВ ---
   const handleOpenRating = (order: OrderWithReview) => {
     setSelectedOrder(order);
     setShowRatingModal(true);
 
-    // Инициализируем рейтинги нулями
     const initialRatings: { [key: string]: number } = {};
     const initialComments: { [key: string]: string } = {};
     order.orderItems.forEach((item) => {
-      // Приводим тип, так как в OrderItem product может быть string | Product
       const product = item.product as Product;
       if (product && product._id) {
         initialRatings[product._id] = 0;
@@ -67,7 +77,6 @@ export default function OrdersScreen() {
   const handleSubmitRating = async () => {
     if (!selectedOrder) return;
 
-    // Проверяем, все ли товары оценены
     const allRated = Object.values(productRatings).every((rating) => rating > 0);
     if (!allRated) {
       Alert.alert('Внимание', 'Пожалуйста, оцените все товары в заказе');
@@ -97,17 +106,45 @@ export default function OrdersScreen() {
     }
   };
 
-  // --- ХЕЛПЕРЫ ДЛЯ СТАТУСОВ ---
-  const getStatusStyle = (status: string) => {
+  // --- СТИЛИ СТАТУСОВ (адаптировано под твой пример) ---
+  const getStatusConfig = (status: string) => {
+    // Используем opacity/10 для фона и opacity/20 для бордера
     switch (status) {
       case 'В ожидании':
-        return { bg: 'bg-yellow-50', text: 'text-yellow-600', label: 'В обработке' };
+        return {
+          container: 'bg-amber-500/10 border-amber-500/20',
+          text: 'text-amber-600',
+          label: 'В обработке',
+          icon: 'time-outline'
+        };
       case 'Отправлен':
-        return { bg: 'bg-blue-50', text: 'text-blue-600', label: 'Отправлен' };
+        return {
+          container: 'bg-blue-500/10 border-blue-500/20',
+          text: 'text-blue-600',
+          label: 'Отправлен',
+          icon: 'paper-plane-outline'
+        };
       case 'Доставлен':
-        return { bg: 'bg-green-50', text: 'text-green-600', label: 'Доставлен' };
+        return {
+          container: 'bg-emerald-500/10 border-emerald-500/20',
+          text: 'text-emerald-600',
+          label: 'Доставлен',
+          icon: 'checkmark-circle-outline'
+        };
+      case 'Отменен':
+        return {
+          container: 'bg-red-500/10 border-red-500/20',
+          text: 'text-red-600',
+          label: 'Отменен',
+          icon: 'close-circle-outline'
+        };
       default:
-        return { bg: 'bg-gray-50', text: 'text-gray-500', label: status };
+        return {
+          container: 'bg-gray-500/10 border-gray-500/20',
+          text: 'text-gray-600',
+          label: status,
+          icon: 'help-circle-outline'
+        };
     }
   };
 
@@ -130,7 +167,6 @@ export default function OrdersScreen() {
 
   return (
     <SafeScreen>
-      {/* Хедер */}
       <View className="px-6 pt-4 pb-4 bg-white flex-row items-center border-b border-gray-50">
         <TouchableOpacity
           onPress={() => router.back()}
@@ -142,7 +178,7 @@ export default function OrdersScreen() {
       </View>
 
       <ScrollView
-        className="flex-1 bg-gray-50/50"
+        className="flex-1 bg-[#F9FAFB]"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100, paddingTop: 16 }}
         refreshControl={
@@ -150,144 +186,153 @@ export default function OrdersScreen() {
         }
       >
         {ordersList.length === 0 ? (
-          // ПУСТОЕ СОСТОЯНИЕ
           <View className="flex-1 items-center justify-center px-6 mt-48">
             <View className="w-24 h-24 bg-gray-100 rounded-full items-center justify-center mb-4">
-              <Ionicons name="receipt-outline" size={42} color="#8B5CF6" />
+              <Ionicons name="receipt-outline" size={42} color="#9CA3AF" />
             </View>
             <Text className="text-black font-raleway-bold text-2xl text-center">
-              История заказов пуста
+              Заказов пока нет
             </Text>
-            <Text className="text-[#6B7280] text-center mt-2.5 font-inter-light leading-7 px-8 text-[15px]">
-              Вы еще не совершали покупок. Самое время выбрать свой первый аромат!
+            <Text className="text-gray-500 text-center mt-2 font-inter-medium px-8">
+              Ваша история покупок появится здесь после оформления первого заказа.
             </Text>
             <TouchableOpacity
-              className="bg-white border border-gray-200 px-8 py-2.5 rounded-full flex-row items-center active:bg-gray-50 mt-4"
-              activeOpacity={0.8}
+              className="bg-black px-8 py-3 rounded-2xl mt-6 active:opacity-80"
               onPress={() => router.push('/(tabs)')}
             >
-              <Text className="text-black font-inter-semibold text-base">В каталог</Text>
+              <Text className="text-white font-inter-semibold text-[15px]">Перейти в каталог</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          // СПИСОК ЗАКАЗОВ
-          <View className="px-6 gap-5">
+          <View className="px-5 gap-5">
             {ordersList.map((order) => {
               const totalItems = order.orderItems.reduce((sum, item) => sum + item.quantity, 0);
-              const firstItemProduct = order.orderItems[0]?.product as Product;
-              const firstImage = firstItemProduct?.images?.[0] || null;
-              const statusStyle = getStatusStyle(order.status);
+              const statusConfig = getStatusConfig(order.status);
 
               return (
                 <View
                   key={order._id}
-                  className="bg-white rounded-[24px] p-5 border border-gray-100 shadow-sm shadow-gray-100"
+                  className="bg-white rounded-[24px] p-5 shadow-sm shadow-gray-200/60 border border-gray-100"
                 >
-                  {/* Верхняя часть карточки */}
-                  <View className="flex-row mb-4">
-                    {/* Изображение */}
-                    <View className="relative">
-                      <View className="bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden w-20 h-20">
-                        {firstImage ? (
-                          <Image
-                            source={firstImage}
-                            style={{ width: '100%', height: '100%' }}
-                            contentFit="cover"
-                          />
-                        ) : (
-                          <View className="flex-1 items-center justify-center">
-                            <Ionicons name="image-outline" size={24} color="#D1D5DB" />
-                          </View>
-                        )}
-                      </View>
-
-                      {/* Бейдж количества товаров (если больше 1 типа) */}
-                      {order.orderItems.length > 1 && (
-                        <View className="absolute -bottom-2 -right-2 bg-black rounded-full w-7 h-7 items-center justify-center border-2 border-white">
-                          <Text className="text-white text-[10px] font-inter-bold">
-                            +{order.orderItems.length - 1}
-                          </Text>
-                        </View>
-                      )}
+                  {/* --- ВЕРХНИЙ БЛОК (БЕЗ КАРТИНКИ) --- */}
+                  <View className="flex-row justify-between items-start mb-4">
+                    {/* Левая часть: Номер и Дата */}
+                    <View>
+                      <Text className="text-black font-raleway-bold text-[18px] mb-1">
+                        Заказ №{order._id.slice(-6).toUpperCase()}
+                      </Text>
+                      <Text className="text-gray-400 font-inter-medium text-[13px]">
+                        от {formatDate(order.createdAt)}
+                      </Text>
                     </View>
 
-                    {/* Информация справа */}
-                    <View className="flex-1 ml-4 justify-between py-0.5">
-                      <View className="flex-row justify-between items-start">
-                        <View>
-                          <Text className="text-black font-raleway-bold text-[15px] mb-1">
-                            Заказ №{order._id.slice(-6).toUpperCase()}
-                          </Text>
-                          <Text className="text-gray-400 font-inter-medium text-xs">
-                            {formatDate(order.createdAt)}
-                          </Text>
-                        </View>
-
-                        {/* Статус */}
-                        <View className={`px-2.5 py-1 rounded-full ${statusStyle.bg}`}>
-                          <Text
-                            className={`${statusStyle.text} text-[10px] font-inter-bold uppercase tracking-wide`}
-                          >
-                            {statusStyle.label}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Цена и количество */}
-                      <View className="flex-row items-center mt-2">
-                        <Text className="text-black font-inter-bold text-lg">
-                          {formatPrice(order.totalPrice)}
-                        </Text>
-                        <View className="w-1 h-1 bg-gray-300 rounded-full mx-2" />
-                        <Text className="text-gray-500 font-inter-medium text-sm">
-                          {totalItems} {getDeclension(totalItems, ['товар', 'товара', 'товаров'])}
-                        </Text>
-                      </View>
+                    {/* Правая часть: Статус (Таблетка) */}
+                    <View className={`px-3 py-1.5 rounded-full border flex-row items-center gap-1.5 ${statusConfig.container}`}>
+                      <Ionicons name={statusConfig.icon as any} size={14} style={{ opacity: 0.8 }} color={statusConfig.text.replace('text-', '').replace('-600', '')} />
+                      <Text className={`${statusConfig.text} text-[11px] font-inter-bold tracking-wide uppercase`}>
+                        {statusConfig.label}
+                      </Text>
                     </View>
                   </View>
 
-                  {/* Список товаров (текстом) */}
-                  <View className="bg-gray-50 rounded-xl p-3 mb-4">
-                    {order.orderItems.map((item) => {
+                  {/* Цена и кол-во товаров (Отдельная строка для акцента) */}
+                  <View className="flex-row items-baseline mb-5">
+                    <Text className="text-black font-inter-bold text-xl mr-2">
+                      {formatPrice(order.totalPrice)}
+                    </Text>
+                    <Text className="text-gray-400 font-inter-medium text-sm">
+                      за {totalItems} {getDeclension(totalItems, ['товар', 'товара', 'товаров'])}
+                    </Text>
+                  </View>
+
+                  {/* --- СПИСОК ТОВАРОВ --- */}
+                  <View className="bg-gray-50/50 rounded-2xl p-3 border border-gray-100 mb-5">
+                    {order.orderItems.map((item, idx) => {
                       const p = item.product as Product;
+                      const brandName = item.brand || (p?.brand && typeof p.brand === 'object' ? (p.brand as any).name : '');
+                      const itemImage = p?.images?.[0];
+                      const isLast = idx === order.orderItems.length - 1;
+
                       return (
-                        <View
-                          key={item._id}
-                          className="flex-row justify-between items-center mb-1 last:mb-0"
-                        >
-                          <Text
-                            className="text-gray-600 font-inter-medium text-[13px] flex-1 mr-2"
-                            numberOfLines={1}
-                          >
-                            {p.name}
-                          </Text>
-                          <Text className="text-black font-inter-semibold text-[13px]">
-                            x{item.quantity}
-                          </Text>
+                        <View key={item._id}>
+                          <View className="flex-row items-center py-2">
+                            {/* Мини-изображение */}
+                            <View className="w-10 h-10 bg-white rounded-lg border border-gray-100 overflow-hidden mr-3 items-center justify-center">
+                              {itemImage ? (
+                                <Image
+                                  source={itemImage}
+                                  style={{ width: '100%', height: '100%' }}
+                                  contentFit="contain"
+                                />
+                              ) : (
+                                <Ionicons name="cube-outline" size={16} color="#E5E7EB" />
+                              )}
+                            </View>
+
+                            {/* Текст */}
+                            <View className="flex-1 pr-2">
+                              {brandName ? (
+                                <Text className="text-gray-400 text-[10px] font-inter-bold uppercase tracking-wider mb-0.5">
+                                  {brandName}
+                                </Text>
+                              ) : null}
+                              <Text className="text-gray-800 font-inter-medium text-[13px] leading-4" numberOfLines={1}>
+                                {item.name}
+                              </Text>
+                              {item.volume && (
+                                <Text className="text-gray-400 text-[11px] font-inter-regular mt-0.5">
+                                  {item.volume} мл
+                                </Text>
+                              )}
+                            </View>
+
+                            {/* Количество x Цена (опционально) или просто кол-во */}
+                            <View className="items-end">
+                              <Text className="text-black font-inter-semibold text-[13px]">
+                                {item.quantity} шт.
+                              </Text>
+                            </View>
+                          </View>
+
+                          {/* Разделитель */}
+                          {!isLast && <View className="h-[1px] bg-gray-200/50 ml-[52px]" />}
                         </View>
                       );
                     })}
                   </View>
 
-                  {/* Кнопка действия (Оценить) */}
+                  {/* --- КНОПКИ ДЕЙСТВИЙ --- */}
                   {order.status === 'Доставлен' && (
-                    <View className="border-t border-gray-100 pt-3">
+                    <View className="flex-row gap-3">
+                      {/* Кнопка возврата */}
+                      <TouchableOpacity
+                        className="flex-1 flex-row items-center justify-center py-3 bg-white border border-gray-200 rounded-xl active:bg-gray-50 shadow-sm shadow-gray-100"
+                        activeOpacity={0.7}
+                        onPress={() => handleOpenReturn(order)}
+                      >
+                        <Ionicons name="reload-outline" size={16} color="#374151" style={{ marginRight: 6 }} />
+                        <Text className="text-gray-700 font-inter-semibold text-[13px]">
+                          Возврат
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* Кнопка оценки */}
                       {order.hasReviewed ? (
-                        <View className="flex-row items-center justify-center py-2 bg-green-50 rounded-xl border border-green-100">
-                          <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
-                          <Text className="text-green-700 font-inter-semibold text-sm ml-2">
+                        <View className="flex-[1.5] flex-row items-center justify-center py-3 bg-emerald-50 rounded-xl border border-emerald-100/50">
+                          <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                          <Text className="text-emerald-700 font-inter-semibold text-[13px] ml-1.5">
                             Отзыв оставлен
                           </Text>
                         </View>
                       ) : (
                         <TouchableOpacity
-                          className="flex-row items-center justify-center py-3 bg-black rounded-xl active:opacity-90 shadow-sm"
+                          className="flex-[1.5] flex-row items-center justify-center py-3 bg-black rounded-xl active:opacity-90 shadow-sm"
                           activeOpacity={0.8}
                           onPress={() => handleOpenRating(order)}
                         >
-                          <Ionicons name="star" size={16} color="#FFFFFF" />
-                          <Text className="text-white font-inter-semibold text-sm ml-2 tracking-wide">
-                            Оценить покупку
+                          <Ionicons name="star" size={14} color="#FFFFFF" />
+                          <Text className="text-white font-inter-semibold text-[13px] ml-2">
+                            Оценить
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -305,18 +350,23 @@ export default function OrdersScreen() {
         visible={showRatingModal}
         onClose={() => setShowRatingModal(false)}
         order={selectedOrder}
-        // Звезды
         productRatings={productRatings}
         onRatingChange={(productId, rating) =>
           setProductRatings((prev) => ({ ...prev, [productId]: rating }))
         }
-        // Комментарии (НОВОЕ)
         productComments={productComments}
         onCommentChange={(productId, text) =>
           setProductComments((prev) => ({ ...prev, [productId]: text }))
         }
         onSubmit={handleSubmitRating}
         isSubmitting={isCreatingReview}
+      />
+
+      {/* Модалка возврата */}
+      <ReturnModal
+        visible={showReturnModal}
+        onClose={() => setShowReturnModal(false)}
+        orderId={selectedReturnOrder?._id || null}
       />
     </SafeScreen>
   );

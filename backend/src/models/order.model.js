@@ -10,6 +10,9 @@ const OrderItemSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  brand: {
+    type: String,
+  },
   price: {
     type: Number,
     required: true,
@@ -23,6 +26,10 @@ const OrderItemSchema = new mongoose.Schema({
   image: {
     type: String,
     required: true,
+  },
+  volume: {
+    type: Number,
+    required: false, // Optional for backward compatibility or non-variant products
   },
 });
 

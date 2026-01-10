@@ -85,6 +85,7 @@ const BeautifulSwitch = ({ value, onValueChange }: BeautifulSwitchProps) => {
 const ACCOUNT_ITEMS = [
   { id: 1, icon: 'person', title: 'Личные данные', color: '#3B82F6', action: '/profile-edit' },
   { id: 2, icon: 'bag', title: 'Мои заказы', color: '#10B981', action: '/orders' },
+  { id: 6, icon: 'bag-remove', title: 'Мои возвраты', color: '#06B6D4', action: '/returns' },
   { id: 3, icon: 'map', title: 'Адреса доставки', color: '#F5CD0B', action: '/addresses' },
   { id: 4, icon: 'heart', title: 'Избранное', color: '#EF4444', action: '/(tabs)/wishlist' },
 ] as const;
@@ -188,15 +189,33 @@ const ProfileScreen = () => {
           </View>
         </View>
 
-        {/* --- Меню --- */}
+        {/* --- Промокоды --- */}
+        <View className="px-6 mb-5">
+          <TouchableOpacity
+            className="bg-white rounded-3xl p-4 flex-row items-center justify-between border border-gray-100 shadow-sm active:bg-gray-50"
+            activeOpacity={0.7}
+            onPress={() => handleNavigation('/coupons')}
+          >
+            <View className="flex-row items-center">
+              <View className="w-9 h-9 rounded-xl bg-[#8B5CF6] items-center justify-center mr-4">
+                <Ionicons name="ticket" size={18} color="#FFFFFF" />
+              </View>
+              <Text className="text-black tracking-wide font-inter text-[15px]">
+                Промокоды
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
+          </TouchableOpacity>
+        </View>
+
+        {/* --- Основное Меню --- */}
         <View className="px-6 mb-6">
           <View className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm">
             {ACCOUNT_ITEMS.map((item, index) => (
               <TouchableOpacity
                 key={item.id}
-                className={`flex-row items-center justify-between p-4 bg-white active:bg-gray-50 ${
-                  index !== ACCOUNT_ITEMS.length - 1 ? 'border-b border-gray-100' : ''
-                }`}
+                className={`flex-row items-center justify-between p-4 bg-white active:bg-gray-50 ${index !== ACCOUNT_ITEMS.length - 1 ? 'border-b border-gray-100' : ''
+                  }`}
                 activeOpacity={0.7}
                 onPress={() => handleNavigation(item.action)}
               >

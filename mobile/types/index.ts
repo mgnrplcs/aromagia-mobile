@@ -27,15 +27,21 @@ export interface Product {
   gender: 'Мужской' | 'Женский' | 'Унисекс';
   scentFamily: string;
   concentration:
-    | 'Духи'
-    | 'Парфюмерная вода'
-    | 'Туалетная вода'
-    | 'Одеколон'
-    | 'Мист'
-    | 'Масляные духи';
+  | 'Духи'
+  | 'Парфюмерная вода'
+  | 'Туалетная вода'
+  | 'Одеколон'
+  | 'Мист'
+  | 'Масляные духи';
   notesPyramid: NotesPyramid;
   notesTags?: string[];
   images: string[];
+  variants?: {
+    volume: number;
+    price: number;
+    stock: number;
+    _id?: string;
+  }[];
   averageRating: number;
   totalReviews: number;
   isBestseller: boolean;
@@ -79,9 +85,11 @@ export interface OrderItem {
   _id?: string;
   product: string | Product;
   name: string;
+  brand?: string;
   price: number;
   quantity: number;
   image: string;
+  volume?: number;
 }
 
 export interface OrderShippingAddress {
@@ -117,6 +125,7 @@ export interface CartItem {
   _id?: string;
   product: string | Product;
   quantity: number;
+  volume?: number;
 }
 
 export interface Cart {

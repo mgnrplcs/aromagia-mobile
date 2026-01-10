@@ -22,10 +22,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Brand, Product, Review, User } from '@/types'; // Добавлен Review и User
-import { formatPrice, getDeclension, formatDate } from '@/lib/utils'; // Добавлен getDeclension, formatDate
-import { useQuery } from '@tanstack/react-query'; // Для загрузки отзывов
-import { useApi } from '@/lib/api'; // Для API
+import { Brand, Product, Review, User } from '@/types';
+import { formatPrice, getDeclension, formatDate } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { useApi } from '@/lib/api';
 
 const { width } = Dimensions.get('window');
 const IMAGE_HEIGHT = 440;
@@ -37,10 +37,33 @@ const ProductDetailScreen = () => {
   const { data: product, isError, isLoading } = useProduct(id);
   const { data: recommendations } = useRecommendations(id);
 
+  const [selectedVolume, setSelectedVolume] = useState<number | null>(null);
+
+  // Список всех доступных объемов
+  const allVolumes = useMemo(() => {
+    if (!product) return [];
+    if (product.variants && product.variants.length > 0) {
+      return product.variants.map((v) => v.volume).sort((a, b) => a - b);
+    }
+    return [product.volume];
+  }, [product]);
+
+  // Установка начального (минимального) объема
+  useEffect(() => {
+    if (allVolumes.length > 0 && selectedVolume === null) {
+      setSelectedVolume(allVolumes[0]);
+    }
+  }, [allVolumes]);
+
   if (isLoading) return <PageLoader />;
   if (isError || !product) return <ErrorUI />;
 
   const brand = typeof product.brand === 'object' ? (product.brand as Brand) : null;
+
+  // Текущий выбранный вариант (для цены и стока)
+  const currentVariant = product.variants?.find((v) => v.volume === selectedVolume);
+  const displayPrice = currentVariant ? currentVariant.price : product.price;
+  const currentStock = currentVariant ? currentVariant.stock : product.stock;
 
   return (
     <View className="flex-1 bg-white relative">
@@ -51,18 +74,29 @@ const ProductDetailScreen = () => {
         bounces={false}
       >
         <ProductGallery images={product.images} />
-        <ProductInfo product={product} brand={brand} />
+        <ProductInfo
+          product={product}
+          brand={brand}
+          selectedVolume={selectedVolume}
+          setSelectedVolume={setSelectedVolume}
+          allVolumes={allVolumes}
+        />
 
         <SwipeableProductTabs product={product} brand={brand} />
 
-        {/* Передаем ID продукта для загрузки отзывов */}
         <ProductReviews productId={product._id} count={product.totalReviews} />
 
         <RecommendationsList items={recommendations} />
       </ScrollView>
 
       <ProductHeader product={product} insets={insets} />
-      <ProductBottomBar product={product} insets={insets} />
+      <ProductBottomBar
+        product={product}
+        insets={insets}
+        selectedVolume={selectedVolume}
+        price={displayPrice}
+        stock={currentStock}
+      />
     </View>
   );
 };
@@ -151,15 +185,27 @@ const ProductGallery = ({ images }: { images: string[] }) => {
 };
 
 // 3. ИНФОРМАЦИЯ
-const ProductInfo = ({ product, brand }: { product: Product; brand: Brand | null }) => (
+const ProductInfo = ({
+  product,
+  brand,
+  selectedVolume,
+  setSelectedVolume,
+  allVolumes,
+}: {
+  product: Product;
+  brand: Brand | null;
+  selectedVolume: number | null;
+  setSelectedVolume: (v: number) => void;
+  allVolumes: number[];
+}) => (
   <View className="px-6 pt-5">
-    <Text className="text-black font-raleway-bold text-lg mb-1 uppercase tracking-widest">
+    <Text className="text-black font-raleway-bold text-lg mb-0.5 uppercase tracking-widest">
       {brand?.name}
     </Text>
-    <Text className="text-black text-2xl font-raleway-medium mb-3 tracking-wide">
+    <Text className="text-black text-2xl font-raleway-medium mb-2 tracking-wide">
       {product.name}
     </Text>
-    <View className="flex-row items-center mb-4">
+    <View className="flex-row items-center mb-5">
       <View className="flex-row gap-1">
         {[1, 2, 3, 4, 5].map((i) => (
           <Ionicons
@@ -170,12 +216,43 @@ const ProductInfo = ({ product, brand }: { product: Product; brand: Brand | null
           />
         ))}
       </View>
-      {/* ИСПРАВЛЕНО: Склонение отзывов */}
-      <Text className="text-black/70 font-inter tracking-wider text-sm ml-2.5">
+      <Text className="text-black font-inter tracking-wider text-sm ml-2.5">
         {product.totalReviews} {getDeclension(product.totalReviews, ['отзыв', 'отзыва', 'отзывов'])}
       </Text>
     </View>
-    <Text className="text-black/80 text-lg leading-7 font-raleway pb-5">{product.description}</Text>
+
+    {/* ВЫБОР ОБЪЕМА */}
+    {allVolumes.length > 1 && (
+      <View className="mb-3">
+        <Text className="text-black font-inter-bold text-sm uppercase tracking-widest mb-2">
+          Выберите объем
+        </Text>
+        <View className="flex-row flex-wrap gap-2.5">
+          {allVolumes.map((vol) => {
+            const isSelected = selectedVolume === vol;
+            return (
+              <TouchableOpacity
+                key={vol}
+                onPress={() => setSelectedVolume(vol)}
+                activeOpacity={0.7}
+                className={`px-4 py-2 rounded-xl border transition-all ${isSelected ? 'border-black bg-white' : 'border-gray-200 bg-gray-50'
+                  }`}
+              >
+                <Text
+                  className={`font-inter-semibold text-sm ${isSelected ? 'text-black' : 'text-gray-400'}`}
+                >
+                  {vol} мл
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    )}
+
+    <Text className="text-black text-[15px] leading-7 font-raleway pb-5 mt-1">
+      {product.description}
+    </Text>
   </View>
 );
 
@@ -202,7 +279,7 @@ const SwipeableProductTabs = ({ product, brand }: { product: Product; brand: Bra
     return list;
   }, [product]);
 
-  const displayedFeatures = showAllFeatures ? allFeatures : allFeatures.slice(0, 3);
+  const displayedFeatures = showAllFeatures ? allFeatures : allFeatures.slice(0, 4);
 
   const handleTabPress = (index: number) => {
     setActiveTab(index);
@@ -240,7 +317,7 @@ const SwipeableProductTabs = ({ product, brand }: { product: Product; brand: Bra
             ))}
           </View>
 
-          {!showAllFeatures && allFeatures.length > 3 && (
+          {!showAllFeatures && allFeatures.length > 4 && (
             <TouchableOpacity
               onPress={() => setShowAllFeatures(true)}
               className="mt-4 py-3 items-center border border-gray-200 rounded-xl"
@@ -254,7 +331,7 @@ const SwipeableProductTabs = ({ product, brand }: { product: Product; brand: Bra
 
         {/* Слайд 2: Состав */}
         <View style={{ width: width }} className="px-6 pb-4">
-          <Text className="text-gray-600 font-inter-regular leading-7 text-sm">
+          <Text className="text-black font-inter leading-7 text-base">
             {product.ingredients}
           </Text>
         </View>
@@ -279,7 +356,7 @@ const SwipeableProductTabs = ({ product, brand }: { product: Product; brand: Bra
               </Text>
             </View>
           </View>
-          <Text className="text-gray-600 font-inter leading-6 text-[15px] pr-6">
+          <Text className="text-black font-inter leading-6 text-[15px] pr-6">
             {brand?.description}
           </Text>
         </View>
@@ -302,10 +379,10 @@ const ProductReviews = ({ productId, count }: { productId: string; count: number
   });
 
   return (
-    <View className="mt-5 pt-4 px-6 border-t border-gray-100">
+    <View className="pt-3 px-6">
       {/* Заголовок */}
-      <View className="flex-row justify-between items-center mb-5">
-        <Text className="text-xl font-raleway-bold text-black">Отзывы ({count})</Text>
+      <View className="flex-row justify-between items-center mb-3">
+        <Text className="text-xl font-inter-bold text-black">Отзывы ({count})</Text>
         {/* Можно добавить кнопку "Смотреть все", если будет отдельная страница */}
       </View>
 
@@ -315,7 +392,7 @@ const ProductReviews = ({ productId, count }: { productId: string; count: number
         // Если отзывов нет
         <View className="bg-gray-50 rounded-2xl p-6 items-center border border-gray-200 border-dashed">
           <Ionicons name="chatbubbles-outline" size={35} color="#9CA3AF" />
-          <Text className="text-gray-500 font-inter mt-2 text-center text-base">
+          <Text className="text-gray-500 font-raleway mt-1.5 text-center text-base">
             Отзывов пока нет. Будьте первым!
           </Text>
         </View>
@@ -323,13 +400,12 @@ const ProductReviews = ({ productId, count }: { productId: string; count: number
         // Список отзывов
         <View className="gap-5">
           {reviews.slice(0, 3).map((review) => {
-            // Типизируем юзера (т.к. в Review он может быть строкой или объектом, но populate делает его объектом)
             const user = review.userId as User;
 
             return (
               <View key={review._id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
                 {/* Шапка отзыва: Аватар, Имя, Дата */}
-                <View className="flex-row items-center mb-2">
+                <View className="flex-row items-center mb-1.5">
                   <View className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden mr-3 border border-white">
                     {user?.imageUrl ? (
                       <Image source={user.imageUrl} style={{ width: '100%', height: '100%' }} />
@@ -343,27 +419,27 @@ const ProductReviews = ({ productId, count }: { productId: string; count: number
                     <Text className="text-black font-inter-semibold text-[15px]">
                       {user?.firstName} {user?.lastName}
                     </Text>
-                    <Text className="text-gray-400 font-inter text-xs mt-0.5">
+                    <Text className="text-gray-400 font-inter text-sm mt-0.5">
                       {formatDate(review.createdAt)}
                     </Text>
                   </View>
                 </View>
 
                 {/* Рейтинг */}
-                <View className="flex-row gap-0.5 mb-2">
+                <View className="flex-row gap-1 mb-3">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Ionicons
                       key={star}
                       name={star <= review.rating ? 'star' : 'star-outline'}
                       size={14}
-                      color="#FBBF24" // Желтый цвет для звезд
+                      color="#000000"
                     />
                   ))}
                 </View>
 
                 {/* Комментарий */}
                 {review.comment ? (
-                  <Text className="text-gray-700 font-inter leading-5 text-[14px]">
+                  <Text className="text-black font-inter leading-6 text-base">
                     {review.comment}
                   </Text>
                 ) : null}
@@ -386,7 +462,19 @@ const ProductReviews = ({ productId, count }: { productId: string; count: number
 };
 
 // 7. Нижняя панель
-const ProductBottomBar = ({ product, insets }: { product: Product; insets: any }) => {
+const ProductBottomBar = ({
+  product,
+  insets,
+  selectedVolume,
+  price,
+  stock,
+}: {
+  product: Product;
+  insets: any;
+  selectedVolume: number | null;
+  price: number;
+  stock: number;
+}) => {
   const {
     cart,
     addToCart,
@@ -397,23 +485,34 @@ const ProductBottomBar = ({ product, insets }: { product: Product; insets: any }
     isRemoving,
   } = useCart();
 
-  const inStock = (product.stock || 0) > 0;
+  const inStock = stock > 0;
+
+  // Ищем конкретный вариант в корзине (по ID товара и ОБЪЕМУ)
   const cartItem = cart?.items.find(
-    (item) => (typeof item.product === 'string' ? item.product : item.product._id) === product._id
+    (item) =>
+      (typeof item.product === 'string' ? item.product : item.product._id) === product._id &&
+      item.volume === selectedVolume
   );
   const quantityInCart = cartItem ? cartItem.quantity : 0;
 
   const handleAddToCart = () => {
-    addToCart({ productId: product._id, quantity: 1 });
+    if (selectedVolume) {
+      addToCart({ productId: product._id, quantity: 1, volume: selectedVolume });
+    }
   };
 
   const handleIncrease = () => {
-    updateQuantity({ productId: product._id, quantity: quantityInCart + 1 });
+    if (selectedVolume) {
+      updateQuantity({ productId: product._id, quantity: quantityInCart + 1, volume: selectedVolume });
+    }
   };
 
   const handleDecrease = () => {
-    if (quantityInCart === 1) removeFromCart(product._id);
-    else updateQuantity({ productId: product._id, quantity: quantityInCart - 1 });
+    if (quantityInCart === 1) {
+      if (selectedVolume) removeFromCart({ productId: product._id, volume: selectedVolume });
+    } else if (selectedVolume) {
+      updateQuantity({ productId: product._id, quantity: quantityInCart - 1, volume: selectedVolume });
+    }
   };
 
   return (
@@ -424,7 +523,7 @@ const ProductBottomBar = ({ product, insets }: { product: Product; insets: any }
       <View className="flex-row items-center justify-between">
         <View>
           <Text className="text-[#111827] text-2xl font-inter-bold">
-            {formatPrice(product.price)}
+            {formatPrice(price)}
           </Text>
         </View>
 
@@ -503,47 +602,89 @@ const ProductBottomBar = ({ product, insets }: { product: Product; insets: any }
 const RecommendationsList = ({ items }: { items: Product[] | undefined }) => {
   if (!items || items.length === 0) return null;
   return (
-    <View className="mt-8 pt-4 border-t border-gray-100 bg-white">
+    <View className="mt-4 pt-4 bg-white">
       <Text className="text-xl font-raleway-bold text-black px-6 mb-4">Вам может понравиться</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
       >
-        {items.map((rec) => (
-          <TouchableOpacity
-            key={rec._id}
-            style={{ width: 180 }}
-            className="mr-4 bg-white"
-            onPress={() => router.push(`/product/${rec._id}` as any)}
-            activeOpacity={0.8}
-          >
-            <View className="bg-[#F3F4F6] rounded-[20px] mb-3 overflow-hidden h-[220px] items-center justify-center relative">
-              <Image
-                source={rec.images[0]}
-                style={{ width: '100%', height: '100%' }}
-                contentFit="cover"
-              />
-            </View>
-            <View className="px-1">
-              <Text
-                numberOfLines={1}
-                className="font-raleway-bold text-black text-sm uppercase tracking-widest"
-              >
-                {typeof rec.brand === 'object' ? rec.brand.name : 'Бренд'}
-              </Text>
-              <Text
-                numberOfLines={1}
-                className="font-raleway-medium text-black text-[15px] tracking-wide h-11"
-              >
-                {rec.name}
-              </Text>
-              <Text className="font-inter-bold text-black -mt-2 text-xl">
-                {formatPrice(rec.price)}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        {items.map((rec) => {
+          const brandName = typeof rec.brand === 'object' ? rec.brand.name : 'Бренд';
+
+
+          const getPriceDisplay = () => {
+            if (rec.variants && rec.variants.length > 0) {
+              const prices = rec.variants.map((v) => v.price);
+              const min = Math.min(...prices);
+              const max = Math.max(...prices);
+              if (min === max) return formatPrice(min);
+              return `${formatPrice(min)} – ${formatPrice(max)}`;
+            }
+            return formatPrice(rec.price);
+          };
+
+          // Получение списка объемов
+          const volumes = rec.variants && rec.variants.length > 0
+            ? rec.variants.map(v => v.volume).sort((a, b) => a - b)
+            : [rec.volume];
+
+          return (
+            <TouchableOpacity
+              key={rec._id}
+              style={{ width: 180 }}
+              className="mr-4 bg-white"
+              onPress={() => router.push(`/product/${rec._id}` as any)}
+              activeOpacity={0.8}
+            >
+              <View className="bg-[#F3F4F6] rounded-[20px] mb-3 overflow-hidden h-[220px] items-center justify-center relative">
+                <Image
+                  source={rec.images[0]}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                />
+              </View>
+              <View className="px-1">
+                <Text
+                  numberOfLines={1}
+                  className="font-raleway-bold text-black text-sm uppercase tracking-widest"
+                >
+                  {brandName}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  className="font-raleway-medium text-black text-[15px] tracking-wide -mt-0.5 mb-1.5"
+                >
+                  {rec.name}
+                </Text>
+
+                <View className="mb-1.5 h-7">
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingRight: 20 }}
+                    style={{ width: '100%', overflow: 'visible' }}
+                  >
+                    {volumes.map((vol) => (
+                      <View
+                        key={vol}
+                        className="bg-white border border-black px-1.5 py-0.5 rounded-md self-start mr-1"
+                      >
+                        <Text className="text-[9px] font-inter-semibold text-black uppercase">
+                          {vol} мл
+                        </Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                <Text className="font-inter-semibold text-black text-lg">
+                  {getPriceDisplay()}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -567,7 +708,7 @@ const TabButton = ({
     className={`pb-2.5 border-b-2 px-1 flex-1 items-center ${active ? 'border-black' : 'border-transparent'}`}
   >
     <Text
-      className={`font-raleway-bold text-base uppercase tracking-widest ${active ? 'text-black' : 'text-[#a3a3a3]'}`}
+      className={`font-raleway-bold text-base uppercase tracking-widest ${active ? 'text-black' : 'text-[#cccccc]'}`}
     >
       {label}
     </Text>
@@ -576,15 +717,15 @@ const TabButton = ({
 
 const FeatureRow = ({ label, value }: { label: string; value?: string }) => (
   <View className="flex-row items-end justify-between mb-2">
-    <Text className="text-gray-500 tracking-wide font-inter text-[14px] bg-white pr-2 z-10">
+    <Text className="text-gray-600 tracking-wide font-inter-light text-[14px] bg-white pr-1 z-10">
       {label}
     </Text>
-    <View className="flex-1 overflow-hidden mx-1 relative top-[3px]">
+    <View className="flex-1 overflow-hidden relative top-[3px]">
       <Text className="text-gray-300 tracking-[2px]" numberOfLines={1} ellipsizeMode="clip">
         ......................................................................
       </Text>
     </View>
-    <Text className="text-[#111827] tracking-wide font-inter text-[14px] bg-white pl-2 z-10 text-right max-w-[50%]">
+    <Text className="text-black tracking-wide font-inter text-[14px] bg-white pl-1 z-10 text-right max-w-[60%]">
       {value || '—'}
     </Text>
   </View>

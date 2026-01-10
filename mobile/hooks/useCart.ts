@@ -22,8 +22,8 @@ const useCart = () => {
 
   // Добавить товар в корзину
   const addToCartMutation = useMutation({
-    mutationFn: async ({ productId, quantity = 1 }: { productId: string; quantity?: number }) => {
-      const { data } = await api.post<{ cart: Cart }>('/cart', { productId, quantity });
+    mutationFn: async ({ productId, quantity = 1, volume }: { productId: string; quantity?: number; volume?: number }) => {
+      const { data } = await api.post<{ cart: Cart }>('/cart', { productId, quantity, volume });
       return data.cart;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
@@ -31,8 +31,8 @@ const useCart = () => {
 
   // Обновить количество товара
   const updateQuantityMutation = useMutation({
-    mutationFn: async ({ productId, quantity }: { productId: string; quantity: number }) => {
-      const { data } = await api.put<{ cart: Cart }>(`/cart/${productId}`, { quantity });
+    mutationFn: async ({ productId, quantity, volume }: { productId: string; quantity: number; volume?: number }) => {
+      const { data } = await api.put<{ cart: Cart }>(`/cart/${productId}`, { quantity, volume });
       return data.cart;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
@@ -40,8 +40,10 @@ const useCart = () => {
 
   // Удалить один товар из корзины
   const removeFromCartMutation = useMutation({
-    mutationFn: async (productId: string) => {
-      const { data } = await api.delete<{ cart: Cart }>(`/cart/${productId}`);
+    mutationFn: async ({ productId, volume }: { productId: string; volume?: number }) => {
+      const { data } = await api.delete<{ cart: Cart }>(`/cart/${productId}`, {
+        params: { volume },
+      });
       return data.cart;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),

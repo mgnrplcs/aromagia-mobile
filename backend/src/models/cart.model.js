@@ -12,6 +12,9 @@ const cartItemSchema = new mongoose.Schema({
     min: 1,
     default: 1,
   },
+  volume: {
+    type: Number,
+  },
 });
 
 const cartSchema = new mongoose.Schema(
@@ -49,8 +52,18 @@ cartSchema.virtual("subtotal").get(function () {
 
   // Считаем сумму
   return this.items.reduce((total, item) => {
-    if (item.product && item.product.price) {
-      return total + item.product.price * item.quantity;
+    if (item.product) {
+      // Пытаемся найти вариант
+      let price = item.product.price || 0;
+
+      if (item.product.variants && item.product.variants.length > 0) {
+        const variant = item.product.variants.find(v => v.volume === item.volume);
+        if (variant) {
+          price = variant.price;
+        }
+      }
+
+      return total + price * item.quantity;
     }
     return total;
   }, 0);

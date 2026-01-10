@@ -23,7 +23,7 @@ import { router } from 'expo-router';
 import { toast } from 'sonner-native';
 import PageLoader from '@/components/PageLoader';
 import ErrorState from '@/components/ErrorState';
-import { useStripe } from '@stripe/stripe-react-native'; // <--- ИМПОРТ СТРАЙПА
+import { useStripe } from '@stripe/stripe-react-native';
 
 // Импорт модалок
 import RemoveItemModal from '@/components/modals/DeleteFromCartModal';
@@ -63,7 +63,7 @@ const ReceiptRow = ({
 
 const CartScreen = () => {
   const api = useApi();
-  const { initPaymentSheet, presentPaymentSheet } = useStripe(); // <--- ХУК СТРАЙПА
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const {
     cart,
     cartItemCount,
@@ -74,7 +74,7 @@ const CartScreen = () => {
     isUpdating,
     removeFromCart,
     updateQuantity,
-    refetch = async () => {},
+    refetch = async () => { },
   } = useCart();
 
   const { addresses } = useAddresses();
@@ -85,12 +85,12 @@ const CartScreen = () => {
 
   // Modals state
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ product: Product; volume?: number } | null>(null);
   const [clearCartModalVisible, setClearCartModalVisible] = useState(false);
 
-  // Promo code
+  // Промокод
   const [promoCode, setPromoCode] = useState('');
-  const [discount, setDiscount] = useState(0);
+  // const [discount, setDiscount] = useState(0); 
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
   const cartItems = cart?.items || [];
@@ -99,8 +99,12 @@ const CartScreen = () => {
   const subtotal = cart?.subtotal || 0;
   const shippingThreshold = 5000;
   const shippingCost = subtotal > shippingThreshold ? 0 : 300;
-  const totalBeforeDiscount = cart?.totalPrice ? cart.totalPrice + shippingCost : 0;
-  const total = Math.max(0, totalBeforeDiscount - discount);
+
+  // Backend totalPrice includes coupon discount if valid
+  const backendTotal = cart?.totalPrice || 0;
+  const effectiveDiscount = subtotal - backendTotal;
+
+  const total = backendTotal + shippingCost;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -108,22 +112,22 @@ const CartScreen = () => {
     setRefreshing(false);
   }, [refetch]);
 
-  const handleQuantityChange = (productId: string, currentQuantity: number, change: number) => {
+  const handleQuantityChange = (productId: string, currentQuantity: number, change: number, volume?: number) => {
     const newQuantity = currentQuantity + change;
     if (newQuantity < 1) return;
-    updateQuantity({ productId, quantity: newQuantity });
+    updateQuantity({ productId, quantity: newQuantity, volume });
   };
 
-  const handleRemoveItem = (product: Product) => {
-    setProductToDelete(product);
+  const handleRemoveItem = (product: Product, volume?: number) => {
+    setItemToDelete({ product, volume });
     setDeleteModalVisible(true);
   };
 
   const confirmRemoveItem = () => {
-    if (productToDelete) {
-      removeFromCart(productToDelete._id);
+    if (itemToDelete) {
+      removeFromCart({ productId: itemToDelete.product._id, volume: itemToDelete.volume });
       setDeleteModalVisible(false);
-      setProductToDelete(null);
+      setItemToDelete(null);
     }
   };
 
@@ -133,26 +137,26 @@ const CartScreen = () => {
 
   const confirmClearAll = () => {
     clearCart();
-    setDiscount(0);
     setPromoCode('');
     setClearCartModalVisible(false);
   };
 
-  const handleApplyPromo = () => {
+  const handleApplyPromo = async () => {
     if (!promoCode) return;
     Keyboard.dismiss();
     setIsApplyingPromo(true);
 
-    setTimeout(() => {
+    try {
+      await api.post('/cart/coupon', { code: promoCode });
+      setPromoCode('');
+      await refetch();
+    } catch (error: any) {
+      console.error(error);
+      const msg = error.response?.data?.error || 'Не удалось применить купон';
+      toast.error(msg);
+    } finally {
       setIsApplyingPromo(false);
-      if (promoCode.toUpperCase() === 'SALE2026') {
-        const discountAmount = Math.floor(totalBeforeDiscount * 0.1);
-        setDiscount(discountAmount);
-      } else {
-        setDiscount(0);
-        toast.error('Промокод не найден');
-      }
-    }, 1000);
+    }
   };
 
   const handleCheckout = () => {
@@ -173,14 +177,13 @@ const CartScreen = () => {
     setAddressModalVisible(true);
   };
 
-  // --- ЛОГИКА ОПЛАТЫ ЧЕРЕЗ STRIPE ---
+  // --- Логика оплаты через Stripe ---
   const handleProceedWithPayment = async (selectedAddress: Address) => {
     setAddressModalVisible(false);
     setPaymentLoading(true);
 
     try {
       // 1. Создаем PaymentIntent на сервере
-      // Бэкенд должен вернуть { clientSecret: string, ... }
       const { data } = await api.post('/payment/create-intent', {
         shippingAddress: selectedAddress,
       });
@@ -200,12 +203,12 @@ const CartScreen = () => {
           phone: selectedAddress.phone,
           address: {
             city: selectedAddress.city,
-            country: 'RU', // Или код вашей страны
+            country: 'RU',
             line1: selectedAddress.streetAddress,
             postalCode: selectedAddress.zipCode,
           },
         },
-        returnURL: 'aromagia://stripe-redirect', // Нужен для некоторых методов оплаты
+        returnURL: 'aromagia://stripe-redirect',
       });
 
       if (initError) {
@@ -326,7 +329,7 @@ const CartScreen = () => {
                             {getBrandName(product)}
                           </Text>
                           <TouchableOpacity
-                            onPress={() => handleRemoveItem(product)}
+                            onPress={() => handleRemoveItem(product, item.volume)}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                             disabled={isRemoving}
                             className="bg-gray-50 p-1.5 rounded-full"
@@ -342,29 +345,38 @@ const CartScreen = () => {
                           {product.name}
                         </Text>
                         <View className="bg-black self-start px-2 py-1 rounded-md mb-2.5 shadow-sm">
-                          <Text className="text-white text-[9px] font-inter-extrabold tracking-wide">
-                            {product.volume} МЛ
+                          <Text className="text-white text-[9px] font-inter-extrabold tracking-wide uppercase">
+                            {item.volume || product.volume} МЛ
                           </Text>
                         </View>
                       </View>
 
                       <View className="flex-row items-end justify-between">
                         <View>
-                          <Text className="text-black font-inter-bold text-lg">
-                            {formatPrice(product.price * item.quantity)}
-                          </Text>
+                          {(() => {
+                            const variant = product.variants?.find((v) => v.volume === item.volume);
+                            const unitPrice = variant ? variant.price : product.price;
 
-                          {item.quantity > 1 && (
-                            <Text className="text-gray-500/75 text-sm font-inter">
-                              {formatPrice(product.price)} / шт.
-                            </Text>
-                          )}
+                            return (
+                              <>
+                                <Text className="text-black font-inter-bold text-lg">
+                                  {formatPrice(unitPrice * item.quantity)}
+                                </Text>
+
+                                {item.quantity > 1 && (
+                                  <Text className="text-gray-500/75 text-sm font-inter">
+                                    {formatPrice(unitPrice)} / шт.
+                                  </Text>
+                                )}
+                              </>
+                            );
+                          })()}
                         </View>
 
                         <View className="flex-row items-center bg-gray-50 rounded-full p-1 border border-gray-100">
                           <TouchableOpacity
                             className="w-7 h-7 items-center justify-center bg-white rounded-full shadow-sm"
-                            onPress={() => handleQuantityChange(product._id, item.quantity, -1)}
+                            onPress={() => handleQuantityChange(product._id, item.quantity, -1, item.volume)}
                             disabled={isUpdating}
                           >
                             <Ionicons name="remove" size={14} color="#111827" />
@@ -382,7 +394,7 @@ const CartScreen = () => {
 
                           <TouchableOpacity
                             className="w-7 h-7 items-center justify-center bg-white rounded-full shadow-sm"
-                            onPress={() => handleQuantityChange(product._id, item.quantity, 1)}
+                            onPress={() => handleQuantityChange(product._id, item.quantity, 1, item.volume)}
                             disabled={isUpdating}
                           >
                             <Ionicons name="add" size={14} color="#111827" />
@@ -398,12 +410,15 @@ const CartScreen = () => {
             {/* СВОДКА */}
             <View className="mx-6 mt-5 mb-4">
               <View className="bg-white rounded-[20px] p-5 border border-gray-100 shadow-sm z-10">
-                {discount > 0 && (
+                {effectiveDiscount > 0 && <ReceiptRow label="Подытог" value={formatPrice(subtotal)} />}
+                {effectiveDiscount > 0 && (
                   <View className="mb-2">
-                    <ReceiptRow label="Подытог" value={formatPrice(totalBeforeDiscount)} />
-                    <ReceiptRow label="Скидка" value={`- ${formatPrice(discount)}`} isDiscount />
+                    <ReceiptRow label="Скидка" value={`- ${formatPrice(effectiveDiscount)}`} isDiscount />
                     <View className="h-[1px] bg-gray-100 my-3" />
                   </View>
+                )}
+                {shippingCost > 0 && (
+                  <ReceiptRow label="Доставка" value={formatPrice(shippingCost)} />
                 )}
 
                 <View className="flex-row justify-between items-center mb-4">
@@ -492,7 +507,8 @@ const CartScreen = () => {
         visible={deleteModalVisible}
         onClose={() => setDeleteModalVisible(false)}
         onConfirm={confirmRemoveItem}
-        product={productToDelete}
+        product={itemToDelete?.product || null}
+        volume={itemToDelete?.volume}
       />
 
       <ClearCartModal

@@ -11,6 +11,7 @@ import {
   Package,
   Layers,
   Beaker,
+  PlusIcon,
 } from "lucide-react";
 
 const initialFormState = {
@@ -25,7 +26,9 @@ const initialFormState = {
   scentFamily: "",
   concentration: "Парфюмерная вода",
   notesPyramid: { top: "", middle: "", base: "" },
+  ingredients: "",
   isBestseller: false,
+  variants: [],
 };
 
 export default function ProductFormModal({
@@ -39,10 +42,26 @@ export default function ProductFormModal({
   const [formData, setFormData] = useState(initialFormState);
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [activeVolume, setActiveVolume] = useState(0);
+  const [isWaitingForVolume, setIsWaitingForVolume] = useState(false);
+  const [pendingVolume, setPendingVolume] = useState("");
 
   useEffect(() => {
     if (isOpen) {
       if (productToEdit) {
+        // Логика инициализации вариантов
+        let initialVariants = productToEdit.variants || [];
+        // Если вариантов нет, но есть старые поля - создадим "виртуальный" вариант
+        if (initialVariants.length === 0 && productToEdit.volume) {
+          initialVariants = [
+            {
+              volume: productToEdit.volume,
+              price: productToEdit.price,
+              stock: productToEdit.stock,
+            },
+          ];
+        }
+
         setFormData({
           name: productToEdit.name,
           brand: productToEdit.brand?._id || productToEdit.brand || "",
@@ -59,22 +78,150 @@ export default function ProductFormModal({
             middle: productToEdit.notesPyramid?.middle || "",
             base: productToEdit.notesPyramid?.base || "",
           },
+          ingredients: productToEdit.ingredients || "",
           isBestseller: productToEdit.isBestseller || false,
+          variants: initialVariants,
         });
+
+        // Устанавливаем активный объем (первый из вариантов или 0)
+        if (initialVariants.length > 0) {
+          setActiveVolume(initialVariants[0].volume);
+        } else {
+          setActiveVolume(productToEdit.volume || 0);
+        }
+
         setImagePreviews(productToEdit.images || []);
         setImages([]);
       } else {
-        setFormData(initialFormState);
+        setFormData({ ...initialFormState, variants: [] });
+        setActiveVolume(0);
         setImages([]);
         setImagePreviews([]);
+        setIsWaitingForVolume(false);
+        setPendingVolume("");
       }
+    } else {
+      // Reset state on close
+      setIsWaitingForVolume(false);
+      setPendingVolume("");
     }
   }, [isOpen, productToEdit]);
+
+  const handleVariantSwitch = (volume) => {
+    setActiveVolume(volume);
+  };
+
+  const updateActiveVariantField = (field, value) => {
+    setFormData((prev) => {
+      const newVariants = [...prev.variants];
+      const variantIndex = newVariants.findIndex(v => v.volume === activeVolume);
+
+      if (variantIndex > -1) {
+        if (field === "volume") {
+          const newVol = parseInt(value) || 0;
+          if (newVariants.some((v, idx) => idx !== variantIndex && v.volume === newVol)) {
+            alert("Такой объем уже есть");
+            return prev;
+          }
+          newVariants[variantIndex] = { ...newVariants[variantIndex], volume: newVol };
+          setActiveVolume(newVol);
+        } else {
+          newVariants[variantIndex] = { ...newVariants[variantIndex], [field]: value };
+        }
+        return { ...prev, variants: newVariants };
+      }
+      return prev;
+    });
+  };
+
+  const handleAddVariant = () => {
+    if (formData.variants.length === 0) {
+      const volNum = parseInt(formData.volume);
+      if (!volNum) {
+        alert("Сначала укажите объем для первого варианта");
+        return;
+      }
+
+      const firstVariant = {
+        volume: volNum,
+        price: formData.price || 0,
+        stock: formData.stock || 0
+      };
+
+      setFormData(prev => ({
+        ...prev,
+        variants: [firstVariant]
+      }));
+      setActiveVolume(volNum);
+      setActiveVolume(volNum);
+    } else {
+      setIsWaitingForVolume(true);
+      setActiveVolume(0);
+      setPendingVolume("");
+      setFormData(prev => ({ ...prev, price: "", stock: "" }));
+    }
+  };
+
+  const confirmNewVariant = (volume) => {
+    const volNum = parseInt(volume);
+    if (!volNum) return;
+
+    if (formData.variants.some(v => v.volume === volNum)) {
+      alert("Такой объем уже есть");
+      return;
+    }
+
+    const newVariant = {
+      volume: volNum,
+      price: formData.price || 0,
+      stock: formData.stock || 0
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      variants: [...prev.variants, newVariant]
+    }));
+    setActiveVolume(volNum);
+    setIsWaitingForVolume(false);
+  };
+
+  const handleRemoveVariant = (vol) => {
+    if (!confirm("Удалить этот вариант?")) return;
+    setFormData(prev => {
+      const newVariants = prev.variants.filter(v => v.volume !== vol);
+      return { ...prev, variants: newVariants };
+    });
+    if (activeVolume === vol) {
+      setActiveVolume(0);
+    }
+  };
+
+  const getCurrentVariantValues = () => {
+    if (!activeVolume) return { price: formData.price, stock: formData.stock };
+    const variant = formData.variants.find(v => v.volume === activeVolume);
+    return variant ? { price: variant.price, stock: variant.stock } : { price: 0, stock: 0 };
+  };
+
+  const currentValues = getCurrentVariantValues();
 
   const handlePriceChange = (e) => {
     const rawValue = e.target.value.replace(/\s/g, "");
     if (rawValue && isNaN(rawValue)) return;
-    setFormData({ ...formData, price: rawValue });
+
+    if (activeVolume > 0) {
+      updateActiveVariantField("price", rawValue);
+    } else {
+      setFormData({ ...formData, price: rawValue });
+    }
+  };
+
+  const handleStockChange = (e) => {
+    const val = e.target.value;
+    if (activeVolume > 0) {
+      updateActiveVariantField("stock", val);
+    } else {
+      setFormData({ ...formData, stock: val });
+    }
   };
 
   const handleImageChange = (e) => {
@@ -100,6 +247,8 @@ export default function ProductFormModal({
           "notesPyramid",
           JSON.stringify(formData.notesPyramid)
         );
+      } else if (key === "variants") {
+        formDataToSend.append("variants", JSON.stringify(formData.variants));
       } else if (key !== "images") {
         formDataToSend.append(key, formData[key]);
       }
@@ -144,8 +293,13 @@ export default function ProductFormModal({
         <div className="bg-base-100 border-b border-base-200 px-6 py-4 flex justify-between items-center z-10 sticky top-0">
           <h3 className="font-bold text-xl">
             {productToEdit
-              ? `Редактирование: ${productToEdit.name}`
+              ? `Редактирование: ${productToEdit.name} `
               : "Новый товар"}
+            {productToEdit?.article && (
+              <span className="ml-2 px-2 py-1 text-xs font-mono font-medium text-base-content/60 bg-base-200 rounded-md border border-base-300">
+                {productToEdit.article}
+              </span>
+            )}
           </h3>
           <button
             onClick={onClose}
@@ -161,7 +315,7 @@ export default function ProductFormModal({
             {/* Блок 1: Основное */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="form-control w-full">
-                <label className="label font-bold text-sm text-base-content/80 mb-1">
+                <label className="label font-semibold text-sm text-base-content/80 mb-1">
                   Название товара
                 </label>
                 <div className="relative">
@@ -185,7 +339,7 @@ export default function ProductFormModal({
               </div>
 
               <div className="form-control w-full">
-                <label className="label font-bold text-sm text-base-content/80 mb-1">
+                <label className="label font-semibold text-sm text-base-content/80 mb-1">
                   Бренд
                 </label>
                 <select
@@ -208,89 +362,236 @@ export default function ProductFormModal({
               </div>
             </div>
 
-            {/* Блок 2: Характеристики */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="form-control">
-                <label className="label font-bold text-sm text-base-content/80 mb-1">
-                  Цена (₽)
+            {/* Блок 2: Варианты и Цены */}
+            <div className="divider my-2"></div>
+            <div className="bg-base-200/50 rounded-xl p-4 border border-base-200">
+              <div className="flex justify-between items-center mb-1">
+                <label className="label font-semibold text-sm text-base-content/80 mb-1">
+                  Объем и варианты
                 </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    className="input input-bordered w-full pr-10 focus:outline-none focus:border-primary"
-                    value={
-                      formData.price
-                        ? Number(formData.price).toLocaleString("ru-RU")
-                        : ""
-                    }
-                    onChange={handlePriceChange}
-                    placeholder="0"
-                    required
-                  />
-                  <div className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none">
-                    <CreditCard
-                      className="w-4 h-4 text-base-content/40"
-                      strokeWidth={2.5}
-                    />
-                  </div>
-                </div>
+
               </div>
 
-              <div className="form-control">
-                <label className="label font-bold text-sm text-base-content/80 mb-1">
-                  Остаток (шт)
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="0"
-                    className="input input-bordered w-full pr-10 focus:outline-none focus:border-primary"
-                    value={formData.stock}
-                    onChange={(e) =>
-                      setFormData({ ...formData, stock: e.target.value })
-                    }
-                    required
-                    placeholder="0"
-                  />
-                  <div className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none">
-                    <Package
-                      className="w-4 h-4 text-base-content/40"
-                      strokeWidth={2.5}
-                    />
-                  </div>
-                </div>
-              </div>
+              {formData.variants.length > 0 ? (
+                <div className="flex flex-wrap gap-2 bg-base-100 p-2 rounded-2xl">
+                  {formData.variants.map((v) => {
+                    const isActive = activeVolume === v.volume;
 
-              <div className="form-control sm:col-span-2">
-                <label className="label font-bold text-sm text-base-content/80 mb-1">
-                  Пол
-                </label>
-                <div className="join w-full">
-                  {["Мужской", "Женский", "Унисекс"].map((g) => (
+                    return (
+                      <div
+                        key={v.volume}
+                        role="button"
+                        className={`
+            flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 text-xs font-medium select-none
+            ${isActive
+                            ? "bg-primary text-white border-primary shadow-md z-10"
+                            : "bg-base-200 text-base-content/70 border-transparent hover:bg-base-300 hover:text-base-content"
+                          }
+          `}
+                        onClick={() => {
+                          setActiveVolume(v.volume);
+                          setIsWaitingForVolume(false);
+                        }}
+                      >
+                        <span>{v.volume} мл</span>
+
+                        <button
+                          type="button"
+                          className={`
+              w-5 h-5 flex items-center -mr-1.5 justify-center rounded-full transition-all
+              ${isActive
+                              ? "bg-white/20 text-white hover:text-error"
+                              : "bg-black/5 text-base-content/50 hover:text-error hover:shadow-sm"
+                            }
+            `}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveVariant(v.volume);
+                          }}
+                        >
+                          <XIcon className="w-2.5 h-2.5" strokeWidth={3.5} />
+                        </button>
+                      </div>
+                    );
+                  })}
+
+
+                  {isWaitingForVolume && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-dashed border-primary/50 bg-primary/10 text-primary animate-pulse text-xs font-medium select-none">
+                      <span className="loading loading-spinner loading-xs scale-90"></span>
+                      <span className="opacity-75">Ввод...</span>
+                      <button
+                        type="button"
+                        className="w-5 h-5 flex items-center justify-center -mr-1.5 bg-base-100/50 text-base-content/60 hover:text-error rounded-full transition-all shadow-sm "
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsWaitingForVolume(false);
+                          setPendingVolume("");
+                          if (formData.variants.length > 0) {
+                            setActiveVolume(formData.variants[0].volume);
+                          }
+                        }}
+                      >
+                        <XIcon className="w-2.5 h-2.5" strokeWidth={3.5} />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Кнопка добавления в конце */}
+                  {!isWaitingForVolume && (
+                    <button
+                      type="button"
+                      onClick={handleAddVariant}
+                      className="ml-auto btn btn-sm mt-px btn-primary btn-outline gap-1.5 rounded-lg shadow-sm bg-base-100 hover:bg-primary hover:text-white transition-all"
+                    >
+                      <PlusIcon className="w-3.5 h-3.5" strokeWidth={3} />
+                      Добавить
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="text-xs text-base-content/50 mb-2">
+                  {isWaitingForVolume ? (
+                    <span className="flex items-center gap-2 text-primary font-medium animate-pulse">
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Ожидание ввода объема...
+                    </span>
+                  ) : (
+                    <span className="text-xs text-base-content/50">
+                      Нет вариантов
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="grid mt-2 grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="form-control">
+                  <label className="label font-semibold text-sm text-base-content/80 mb-1">
+                    Объем (мл)
+                  </label>
+                  <div className="relative">
                     <input
-                      key={g}
-                      className="join-item btn btn-sm flex-1 h-9.5 text-sm focus:outline-none"
-                      type="radio"
-                      name="gender"
-                      aria-label={g}
-                      checked={formData.gender === g}
-                      onChange={() => setFormData({ ...formData, gender: g })}
+                      type="number"
+                      className="input input-bordered w-full pr-10 focus:outline-none focus:border-primary"
+                      value={isWaitingForVolume ? pendingVolume : (activeVolume > 0 ? activeVolume : formData.volume)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (isWaitingForVolume) {
+                          setPendingVolume(val);
+                        } else if (activeVolume > 0) {
+                          updateActiveVariantField("volume", val);
+                        } else {
+                          setFormData({ ...formData, volume: val });
+                        }
+                      }}
+                      onBlur={(e) => {
+                        if (isWaitingForVolume && e.target.value) {
+                          confirmNewVariant(e.target.value);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (isWaitingForVolume && e.key === 'Enter') {
+                          e.preventDefault();
+                          if (e.target.value) confirmNewVariant(e.target.value);
+                        }
+                      }}
+                      autoFocus={isWaitingForVolume}
+                      required
+                      placeholder={isWaitingForVolume ? "Введите объем..." : "0"}
                     />
-                  ))}
+                    <div className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none">
+                      <Beaker
+                        className="w-4 h-4 text-base-content/40"
+                        strokeWidth={2.5}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-control">
+                  <label className="label font-semibold text-sm text-base-content/80 mb-1">
+                    Цена (₽)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="input input-bordered w-full pr-10 focus:outline-none focus:border-primary"
+                      value={
+                        currentValues.price
+                          ? Number(currentValues.price).toLocaleString("ru-RU")
+                          : ""
+                      }
+                      onChange={handlePriceChange}
+                      placeholder="0"
+                      required
+                    />
+                    <div className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none">
+                      <CreditCard
+                        className="w-4 h-4 text-base-content/40"
+                        strokeWidth={2.5}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-control">
+                  <label className="label font-semibold text-sm text-base-content/80 mb-1">
+                    Остаток (шт)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      className="input input-bordered w-full pr-10 focus:outline-none focus:border-primary"
+                      value={currentValues.stock}
+                      onChange={handleStockChange}
+                      required
+                      placeholder="0"
+                    />
+                    <div className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none">
+                      <Package
+                        className="w-4 h-4 text-base-content/40"
+                        strokeWidth={2.5}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Блок 3: Доп. инфо */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="form-control">
-                <label className="label font-bold text-sm text-base-content/80 mb-1">
+                <label className="label font-semibold text-sm text-base-content/80 mb-1">
+                  Группа ароматов
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    className="input input-bordered pb-0.5 w-full pr-10 focus:outline-none focus:border-primary"
+                    placeholder="Цветочно-фруктовые"
+                    value={formData.scentFamily}
+                    onChange={(e) =>
+                      setFormData({ ...formData, scentFamily: e.target.value })
+                    }
+                    required
+                  />
+                  <div className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none">
+                    <Palette
+                      className="w-4 h-4 text-base-content/40"
+                      strokeWidth={2.5}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-control">
+                <label className="label font-semibold text-sm text-base-content/80 mb-1">
                   Категория
                 </label>
                 <div className="relative">
                   <input
                     type="text"
-                    className="input input-bordered w-full pr-10 focus:outline-none focus:border-primary"
+                    className="input input-bordered pb-0.5 w-full pr-10 focus:outline-none focus:border-primary"
                     placeholder="Цветочные"
                     value={formData.category}
                     onChange={(e) =>
@@ -308,11 +609,11 @@ export default function ProductFormModal({
               </div>
 
               <div className="form-control">
-                <label className="label font-bold text-sm text-base-content/80 mb-1">
+                <label className="label font-semibold text-sm text-base-content/80 mb-1">
                   Концентрация
                 </label>
                 <select
-                  className="select select-bordered w-full focus:outline-none focus:ring-0 focus:border-primary"
+                  className="select select-bordered pb-0.5 w-full focus:outline-none focus:ring-0 focus:border-primary"
                   value={formData.concentration}
                   onChange={(e) =>
                     setFormData({ ...formData, concentration: e.target.value })
@@ -326,62 +627,32 @@ export default function ProductFormModal({
                   <option value="Масляные духи">Масляные духи</option>
                 </select>
               </div>
-
-              <div className="form-control">
-                <label className="label font-bold text-sm text-base-content/80 mb-1">
-                  Объем (мл)
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    className="input input-bordered w-full pr-10 focus:outline-none focus:border-primary"
-                    value={formData.volume}
-                    onChange={(e) =>
-                      setFormData({ ...formData, volume: e.target.value })
-                    }
-                    required
-                    placeholder="0"
-                  />
-                  <div className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none">
-                    <Beaker
-                      className="w-4 h-4 text-base-content/40"
-                      strokeWidth={2.5}
-                    />
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Блок 4: Пирамида */}
+            <div className="divider my-2"></div>
             <div className="bg-base-200/40 rounded-xl p-5 border border-base-200">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                 <h4 className="font-bold text-[15px] uppercase tracking-wider opacity-70 flex items-center gap-3 text-base-content">
-                  <Pyramid className="w-5 h-5 text-primary" />
+                  <Pyramid className="w-6 h-6 text-primary" />
                   Пирамида нот
                 </h4>
 
                 <div className="form-control w-full sm:w-56">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className="input input-bordered w-full pr-10 focus:outline-none focus:border-secondary text-sm"
-                      placeholder="Цветочно-фруктовые"
-                      value={formData.scentFamily}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          scentFamily: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                    <div className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none">
-                      <Palette
-                        className="w-4 h-4 text-base-content/40"
-                        strokeWidth={2.5}
-                      />
-                    </div>
-                  </div>
+                  <label className="label font-bold text-sm text-base-content/80 mb-1 sm:hidden">
+                    Пол
+                  </label>
+                  <select
+                    className="select select-bordered pb-0.5 w-full focus:outline-none focus:ring-0 focus:border-secondary font-normal"
+                    value={formData.gender}
+                    onChange={(e) =>
+                      setFormData({ ...formData, gender: e.target.value })
+                    }
+                  >
+                    <option value="Унисекс">Унисекс</option>
+                    <option value="Мужской">Мужской</option>
+                    <option value="Женский">Женский</option>
+                  </select>
                 </div>
               </div>
 
@@ -449,23 +720,41 @@ export default function ProductFormModal({
               </div>
             </div>
 
-            {/* Блок 5: Описание */}
-            <div className="form-control w-full">
-              <label className="label font-bold text-sm text-base-content/80 mb-1">
-                Описание
-              </label>
-              <textarea
-                className="textarea textarea-bordered h-32 w-full resize-none leading-relaxed text-sm focus:outline-none focus:border-primary"
-                placeholder="Официальное описание товара, ключевые особенности, философия бренда..."
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                required
-              />
+            {/* Блок 5: Описание и Состав */}
+            <div className="divider my-2"></div>
+            <div className="flex flex-col gap-3">
+              <div className="form-control w-full">
+                <label className="label font-semibold text-sm text-base-content/80 mb-1">
+                  Описание
+                </label>
+                <textarea
+                  className="textarea textarea-bordered h-32 w-full resize-none leading-relaxed text-sm focus:outline-none focus:border-primary"
+                  placeholder="Официальное описание товара..."
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  required
+                />
+              </div>
+
+              <div className="form-control w-full">
+                <label className="label font-semibold text-sm text-base-content/80 mb-1">
+                  Состав
+                </label>
+                <textarea
+                  className="textarea textarea-bordered h-24 w-full resize-none leading-relaxed text-sm focus:outline-none focus:border-primary"
+                  placeholder="Список ингредиентов (Аlcohol denat, Parfum, Water...)"
+                  value={formData.ingredients}
+                  onChange={(e) =>
+                    setFormData({ ...formData, ingredients: e.target.value })
+                  }
+                />
+              </div>
             </div>
 
             {/* Блок 6: Хит продаж */}
+            <div className="divider my-2"></div>
             <div className="flex items-center justify-between bg-base-100 border border-base-200 p-4 rounded-xl hover:border-base-300 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
@@ -489,26 +778,32 @@ export default function ProductFormModal({
             </div>
 
             {/* Блок 7: Фото */}
+            <div className="divider my-2"></div>
             <div className="form-control">
-              <label className="label font-bold text-sm text-base-content/80 mb-1">
+              <label className="label font-semibold text-sm text-base-content/80 mb-1">
                 Фотографии
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="relative border-2 border-dashed border-base-300 rounded-2xl hover:border-primary hover:bg-base-50 transition-all aspect-square flex flex-col items-center justify-center cursor-pointer text-center p-2 group">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    required={!productToEdit}
-                  />
-                  <div className="bg-base-200 p-3 rounded-full mb-1 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                    <ImageIcon className="w-6 h-6 text-base-content/40 group-hover:text-primary" />
+                <div className="col-span-2 sm:col-span-4">
+                  <div className="relative border-2 border-dashed border-base-300 rounded-2xl hover:border-primary hover:bg-base-50 transition-all flex flex-col items-center justify-center cursor-pointer text-center p-6 group w-full">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      required={!productToEdit && images.length === 0}
+                    />
+                    <div className="bg-base-200 p-3 rounded-full mb-3 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                      <ImageIcon className="w-8 h-8 text-base-content/40 group-hover:text-primary" />
+                    </div>
+                    <span className="text-sm font-semibold text-base-content/80 group-hover:text-primary mb-1">
+                      Нажмите для загрузки фото
+                    </span>
+                    <span className="text-[13px] text-base-content/50">
+                      Поддерживаемые форматы: JPEG, JPG, PNG, WEBP. Макс. размер: 5 MB
+                    </span>
                   </div>
-                  <span className="text-xs font-bold text-base-content/60 group-hover:text-primary">
-                    Добавить фото
-                  </span>
                 </div>
 
                 {imagePreviews.map((preview, index) => (

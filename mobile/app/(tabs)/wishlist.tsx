@@ -23,24 +23,6 @@ import DeleteProductModal from '@/components/modals/DeleteFromWishlistModal';
 
 // --- КОМПОНЕНТ ЭЛЕМЕНТА ВИШЛИСТА (чтобы хуки работали) ---
 const WishlistItem = ({ item, onDelete }: { item: Product; onDelete: (item: Product) => void }) => {
-  const { cart, addToCart, updateQuantity, removeFromCart, isUpdating, isRemoving } = useCart();
-
-  // Ищем товар в корзине
-  const cartItem = cart?.items.find(
-    (cartItem) =>
-      (typeof cartItem.product === 'string' ? cartItem.product : cartItem.product._id) === item._id
-  );
-  const quantityInCart = cartItem ? cartItem.quantity : 0;
-
-  const handleIncrease = () => {
-    updateQuantity({ productId: item._id, quantity: quantityInCart + 1 });
-  };
-
-  const handleDecrease = () => {
-    if (quantityInCart === 1) removeFromCart(item._id);
-    else updateQuantity({ productId: item._id, quantity: quantityInCart - 1 });
-  };
-
   // Хелпер бренда
   const getBrandName = (product: Product) => {
     if (product.brand && typeof product.brand === 'object' && 'name' in product.brand) {
@@ -52,16 +34,33 @@ const WishlistItem = ({ item, onDelete }: { item: Product; onDelete: (item: Prod
   const brandName = getBrandName(item);
   const inStock = item.stock > 0;
 
+  // Расчет диапазона цен
+  const getPriceDisplay = () => {
+    if (!item.variants || item.variants.length === 0) {
+      return formatPrice(item.price);
+    }
+
+    const prices = item.variants.map((v) => v.price);
+    const minPrice = Math.min(...prices, item.price);
+    const maxPrice = Math.max(...prices, item.price);
+
+    if (minPrice === maxPrice) {
+      return formatPrice(minPrice);
+    }
+
+    return `${formatPrice(minPrice).replace(' ₽', '')} - ${formatPrice(maxPrice)}`;
+  };
+
   return (
     <TouchableOpacity
-      className="bg-white rounded-3xl p-4 border border-gray-200 flex-row items-start mb-4"
+      className="bg-white rounded-3xl p-4 border border-gray-100 flex-row items-center mb-4 shadow-sm shadow-gray-200/50"
       activeOpacity={0.9}
       onPress={() => router.push(`/product/${item._id}` as any)}
     >
       {item.isBestseller && (
         <View className="absolute top-3 left-3.5 z-10 bg-red-400 px-2.5 py-1.5 rounded-full flex-row items-center shadow-sm">
           <Ionicons name="flash" size={11} color="#FFFFFF" style={{ marginRight: 2.5 }} />
-          <Text className="text-white text-xs font-inter-extrabold tracking-wider uppercase">
+          <Text className="text-white text-[10px] font-inter-extrabold tracking-wider uppercase">
             Хит
           </Text>
         </View>
@@ -69,15 +68,15 @@ const WishlistItem = ({ item, onDelete }: { item: Product; onDelete: (item: Prod
 
       <Image
         source={item.images[0]}
-        style={{ width: 110, height: 110, borderRadius: 16 }}
-        contentFit="cover"
-        className="bg-gray-50 border border-gray-100"
+        style={{ width: 90, height: 90, borderRadius: 20 }}
+        contentFit="contain"
+        className="bg-gray-50/50 border border-gray-100"
       />
 
-      <View className="flex-1 ml-4 py-1">
+      <View className="flex-1 ml-4 justify-center">
         {/* Хедер карточки */}
-        <View className="flex-row justify-between items-start">
-          <Text className="text-black text-sm font-raleway-bold uppercase tracking-widest mt-1">
+        <View className="flex-row justify-between items-start mb-1">
+          <Text className="text-gray-400 text-[10px] font-inter-bold uppercase tracking-widest">
             {brandName}
           </Text>
 
@@ -89,96 +88,51 @@ const WishlistItem = ({ item, onDelete }: { item: Product; onDelete: (item: Prod
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             className="bg-gray-50 p-1.5 rounded-full"
           >
-            <Ionicons name="close" size={18} color="#9CA3AF" />
+            <Ionicons name="close" size={16} color="#9CA3AF" />
           </TouchableOpacity>
         </View>
 
         <Text
-          className="text-black font-raleway-medium tracking-wide text-lg mb-1 -mt-2"
+          className="text-black font-raleway-bold text-base mb-1"
           numberOfLines={1}
           ellipsizeMode="tail"
         >
           {item.name}
         </Text>
 
-        <View className="mb-2.5">
-          <Text className="text-black font-inter-bold text-xl">{formatPrice(item.price)}</Text>
+        {/* Чипсы с объемами */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="flex-row mb-2"
+        >
+          {Array.from(new Set([item.volume, ...(item.variants?.map(v => v.volume) || [])]))
+            .filter(vol => vol && typeof vol === 'number')
+            .sort((a, b) => a - b)
+            .map((vol, idx) => (
+              <View
+                key={idx}
+                className="bg-gray-100/80 px-2 py-0.5 rounded-md mr-1.5 border border-gray-200/50"
+              >
+                <Text className="text-gray-600 font-inter-semibold text-[10px]">
+                  {vol} мл
+                </Text>
+              </View>
+            ))
+          }
+        </ScrollView>
+
+        <View className="flex-row items-center justify-between">
+          <Text className="text-black font-inter-bold text-[17px]">
+            {getPriceDisplay()}
+          </Text>
+
           {!inStock && (
-            <Text className="text-red-500 text-xs mt-1 font-inter-medium">Нет в наличии</Text>
+            <Text className="text-red-500 text-[10px] font-inter-medium uppercase tracking-wide bg-red-50 px-2 py-1 rounded-lg">
+              Out of stock
+            </Text>
           )}
         </View>
-
-        {/* Кнопка добавления в корзину */}
-        {inStock && (
-          <View>
-            {!cartItem ? (
-              <TouchableOpacity
-                className="bg-black py-2.5 rounded-xl flex-row items-center justify-center active:bg-gray-800 shadow-sm"
-                onPress={(e) => {
-                  e.stopPropagation();
-                  addToCart({ productId: item._id, quantity: 1 });
-                }}
-                disabled={isUpdating}
-              >
-                <Ionicons name="bag-handle" size={18} color="#fff" style={{ marginRight: 6 }} />
-                <Text className="text-white font-inter-bold tracking-wide text-[13px]">
-                  В корзину
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              // Кнопка со счетчиком
-              <View className="flex-row h-[40px] shadow-sm rounded-xl overflow-hidden border border-gray-200 bg-white">
-                {/* Левая часть: Перейти в корзину */}
-                <TouchableOpacity
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    router.push('/(tabs)/cart');
-                  }}
-                  className="bg-blue-500 w-11 items-center justify-center h-full active:bg-blue-600"
-                >
-                  <Ionicons name="bag-check" size={18} color="white" />
-                </TouchableOpacity>
-
-                {/* Правая часть: Счетчик */}
-                <View className="flex-1 flex-row items-center justify-between px-3 bg-white h-full border-l border-gray-100">
-                  <TouchableOpacity
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleDecrease();
-                    }}
-                    disabled={isUpdating || isRemoving}
-                    className="w-7 h-7 bg-gray-50 rounded-full items-center justify-center active:bg-gray-100 border border-gray-100"
-                  >
-                    {isRemoving ? (
-                      <ActivityIndicator size="small" color="#111827" />
-                    ) : (
-                      <Ionicons name="remove" size={16} color="#111827" />
-                    )}
-                  </TouchableOpacity>
-
-                  <Text className="text-[#111827] font-inter-bold text-[15px] mx-2 min-w-[20px] text-center">
-                    {isUpdating ? (
-                      <ActivityIndicator size="small" color="#111827" />
-                    ) : (
-                      quantityInCart
-                    )}
-                  </Text>
-
-                  <TouchableOpacity
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleIncrease();
-                    }}
-                    disabled={isUpdating || quantityInCart >= item.stock}
-                    className="w-7 h-7 bg-gray-50 rounded-full items-center justify-center active:bg-gray-100 border border-gray-100"
-                  >
-                    <Ionicons name="add" size={16} color="#111827" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-          </View>
-        )}
       </View>
     </TouchableOpacity>
   );

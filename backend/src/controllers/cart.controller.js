@@ -7,11 +7,13 @@ export async function getCart(req, res) {
   try {
     const user = req.user;
     // 1. Ищем корзину по user._id
-    let cart = await Cart.findOne({ user: user._id }).populate({
-      path: "items.product",
-      select: "name price images category brand volume",
-      populate: { path: "brand", select: "name" },
-    });
+    let cart = await Cart.findOne({ user: user._id })
+      .populate({
+        path: "items.product",
+        select: "name price images category brand volume variants",
+        populate: { path: "brand", select: "name" },
+      })
+      .populate("coupon");
     // 2. Если корзины нет — создаем
     if (!cart) {
       cart = await Cart.create({
@@ -33,16 +35,32 @@ export async function getCart(req, res) {
 // Добавление товара в корзину
 export async function addToCart(req, res) {
   try {
-    const { productId, quantity = 1 } = req.body;
+    const { productId, quantity = 1, volume } = req.body;
     const user = req.user;
 
-    // 1. Проверяем сам товар и его сток
+    // 1. Проверяем сам товар
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ error: "Товар не найден" });
     }
 
-    if (product.stock < quantity) {
+    // 1.1 Определяем вариант (если есть variants)
+    let currentStock = product.stock;
+
+    // Если volume передан, ищем вариант. Если нет - берем дефолтный (root)
+    // Но теперь мы хотим форсировать variants если они есть
+    if (product.variants && product.variants.length > 0) {
+      if (!volume) {
+        return res.status(400).json({ error: "Необходимо выбрать объем" });
+      }
+      const variant = product.variants.find(v => v.volume === parseInt(volume));
+      if (!variant) {
+        return res.status(404).json({ error: "Такой объем не найден" });
+      }
+      currentStock = variant.stock;
+    }
+
+    if (currentStock < quantity) {
       return res.status(400).json({ error: "Недостаточно товара на складе" });
     }
 
@@ -57,22 +75,26 @@ export async function addToCart(req, res) {
       });
     }
 
-    // 3. Проверяем, есть ли товар уже в корзине
-    const existingItem = cart.items.find(
-      (item) => item.product.toString() === productId
+    // 3. Проверяем, есть ли такой же товар C ТАКИМ ЖЕ ОБЪЕМОМ
+    const itemIndex = cart.items.findIndex(
+      (item) => item.product.toString() === productId && (!volume || item.volume === parseInt(volume))
     );
 
-    if (existingItem) {
+    if (itemIndex > -1) {
       // Товар уже есть: увеличиваем количество
-      const newQuantity = existingItem.quantity + 1;
+      const newQuantity = cart.items[itemIndex].quantity + 1;
+
       // Проверка стока для нового количества
-      if (product.stock < newQuantity) {
+      // (currentStock мы уже вычислили выше для конкретного варианта)
+      if (currentStock < newQuantity) {
         return res.status(400).json({ error: "Закончился товар" });
       }
-      existingItem.quantity = newQuantity;
+      cart.items[itemIndex].quantity = newQuantity;
     } else {
       // Товара нет: добавляем новый
-      cart.items.push({ product: productId, quantity });
+      // Если volume не передан (legacy product без вариантов), берем product.volume
+      const itemVolume = volume ? parseInt(volume) : product.volume;
+      cart.items.push({ product: productId, quantity, volume: itemVolume });
     }
 
     await cart.save();
@@ -80,7 +102,7 @@ export async function addToCart(req, res) {
     // 4. Подгружаем данные перед отправкой
     await cart.populate({
       path: "items.product",
-      select: "name price images category brand volume",
+      select: "name price images category brand volume variants",
       populate: { path: "brand", select: "name" },
     });
 
@@ -116,9 +138,31 @@ export async function updateQuantity(req, res) {
     const itemIndex = cart.items.findIndex(
       (item) => item.product.toString() === productId
     );
-    if (itemIndex === -1) {
+    // TODO: Здесь есть проблема. itemIndex найдет ПЕРВЫЙ попавшийся товар с этим ID.
+    // А у нас может быть один товар с РАЗНЫМИ объемами.
+    // Правильнее было бы передавать cartItemId, но мы передаем productId.
+    // Для простоты пока предположим, что фронт шлёт и productId и volume (или cartItemId).
+    // Но сигнатура функции updateQuantity(req, res) использует productId из params.
+    // Это ограничение текущего API.
+    // План Б: мы можем найти товар в корзине, и если их несколько, нам нужно знать какой именно обновлять.
+    // Или же (костыль) - мы считаем, что фронт обновляет тот variant, который "подразумевается".
+
+    // !!! КРИТИЧНО: API updateQuantity принимает productId, но не volume. 
+    // Если в корзине 2 варианта одного товара, мы не знаем какой обновлять.
+    // Я добавлю volume в req.body для уточнения.
+
+    const { volume } = req.body; // Добавляем volume в body для уточнения
+
+    const cartItem = cart.items.find(
+      (item) => item.product.toString() === productId && (!volume || item.volume === parseInt(volume))
+    );
+
+    if (!cartItem) {
       return res.status(404).json({ error: "Товар не найден в корзине" });
     }
+
+    // Получаем индекс для обновления (хотя можно менять по ссылке, но mongoose иногда капризничает, надежнее через индекс если менять массив)
+    // Но мы уже нашли объект, изменим его. 
 
     // Проверяем наличие на складе перед изменением
     const product = await Product.findById(productId);
@@ -126,20 +170,29 @@ export async function updateQuantity(req, res) {
       return res.status(404).json({ error: "Товар больше не доступен" });
     }
 
-    if (product.stock < quantity) {
+    let currentStock = product.stock;
+    if (product.variants && product.variants.length > 0) {
+      // Ищем вариант соответствующий товару в корзине
+      const variant = product.variants.find(v => v.volume === cartItem.volume);
+      if (variant) {
+        currentStock = variant.stock;
+      }
+    }
+
+    if (currentStock < quantity) {
       return res
         .status(400)
-        .json({ error: `Недостаточно товара. Доступно: ${product.stock}` });
+        .json({ error: `Недостаточно товара. Доступно: ${currentStock}` });
     }
 
     // Обновляем количество
-    cart.items[itemIndex].quantity = quantity;
+    cartItem.quantity = quantity;
     await cart.save();
 
     // Подгружаем данные для ответа
     await cart.populate({
       path: "items.product",
-      select: "name price images category brand volume",
+      select: "name price images category brand volume variants",
       populate: { path: "brand", select: "name" },
     });
 
@@ -157,6 +210,7 @@ export async function updateQuantity(req, res) {
 export async function removeFromCart(req, res) {
   try {
     const { productId } = req.params;
+    const { volume } = req.body || req.query;
     const user = req.user;
 
     const cart = await Cart.findOne({ user: user._id });
@@ -165,14 +219,25 @@ export async function removeFromCart(req, res) {
       return res.status(404).json({ error: "Корзина не найдена" });
     }
 
-    cart.items.pull({ product: productId });
+    if (volume) {
+      // Удаляем конкретный вариант
+      cart.items = cart.items.filter(
+        (item) =>
+          !(item.product.toString() === productId && item.volume === parseInt(volume))
+      );
+    } else {
+      // Удаляем все варианты этого товара (legacy/fallback)
+      cart.items = cart.items.filter(
+        (item) => item.product.toString() !== productId
+      );
+    }
 
     await cart.save();
 
     // Подгружаем данные для ответа
     await cart.populate({
       path: "items.product",
-      select: "name price images category brand volume",
+      select: "name price images category brand volume variants",
       populate: { path: "brand", select: "name" },
     });
 
@@ -216,9 +281,11 @@ export async function applyCoupon(req, res) {
     const { code } = req.body;
     const user = req.user;
 
-    const cart = await Cart.findOne({ user: user._id }).populate(
-      "items.product"
-    );
+    const cart = await Cart.findOne({ user: user._id }).populate({
+      path: "items.product",
+      select: "name price images category brand volume variants",
+      populate: { path: "brand", select: "name" },
+    });
 
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ error: "Корзина пуста" });
@@ -289,7 +356,8 @@ export async function removeCoupon(req, res) {
     // Нужно вернуть актуальную корзину
     await cart.populate({
       path: "items.product",
-      select: "name price images",
+      select: "name price images category brand volume variants",
+      populate: { path: "brand", select: "name" },
     });
 
     res.status(200).json({ message: "Купон удален", cart });

@@ -341,14 +341,12 @@ function SortChip({
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`px-5 py-2.5 rounded-xl border ${
-        active ? 'bg-black border-black' : 'bg-white border-gray-200'
-      }`}
+      className={`px-5 py-2.5 rounded-xl border ${active ? 'bg-black border-black' : 'bg-white border-gray-200'
+        }`}
     >
       <Text
-        className={`font-inter-medium tracking-wide text-[13px] ${
-          active ? 'text-white' : 'text-gray-500'
-        }`}
+        className={`font-inter-medium tracking-wide text-[13px] ${active ? 'text-white' : 'text-gray-500'
+          }`}
       >
         {label}
       </Text>
