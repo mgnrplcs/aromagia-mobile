@@ -1,40 +1,40 @@
-# Aromagia — Fullstack экосистема для продажи парфюмерии
+# Aromagia - Fullstack экосистема для продажи парфюмерии
 
 Готовое решение для парфюмерного магазина: мобильное приложение для клиентов, админ-панель для управления бизнесом и масштабируемый бэкенд.
 
 ## 🚀 Из чего состоит проект
 
-*   **Мобилка (Customer App)**: Приложение на React Native. Здесь клиенты выбирают товары, оформляют заказы и следят за историей покупок.
-*   **Админка (Admin Dashboard)**: Веб-интерфейс на React для менеджеров. Позволяет рулить товарами, смотреть аналитику продаж и обрабатывать возвраты.
-*   **Бэкенд (Core API)**: Сервер на Express.js. Отвечает за логику, API для фронтов, платежи и интеграцию с внешними сервисами.
+* **Мобилка (Customer App)**: Приложение на React Native. Здесь клиенты выбирают товары, оформляют заказы и следят за историей покупок.
+* **Админка (Admin Dashboard)**: Веб-интерфейс на React для менеджеров. Позволяет рулить товарами, смотреть аналитику продаж и обрабатывать возвраты.
+* **Бэкенд (Core API)**: Сервер на Express.js. Отвечает за логику, API для фронтов, платежи и интеграцию с внешними сервисами.
 
 ---
 
 ## 🛠 Стек технологий
 
 ### Backend
-*   **Среда**: Node.js, Express.js (v5)
-*   **БД**: MongoDB + Mongoose
-*   **Авторизация**: Clerk (управление пользователями)
-*   **Деньги**: Stripe (прием платежей)
-*   **Картинки**: Cloudinary
-*   **Задачи в фоне**: Inngest
-*   **События**: Svix (webhook management)
+* **Среда**: Node.js, Express.js (v5)
+* **БД**: MongoDB + Mongoose
+* **Авторизация**: Clerk (управление пользователями)
+* **Деньги**: Stripe (прием платежей)
+* **Картинки**: Cloudinary
+* **Задачи в фоне**: Inngest
+* **События**: Svix (webhook management)
 
 ### Admin Panel
-*   **Фронт**: React 19 + Vite 7
-*   **Дизайн**: Tailwind CSS v4 + DaisyUI
-*   **Стейт**: TanStack Query (React Query)
-*   **Роутинг**: React Router 7
-*   **Интерактивы**: Recharts (графики), Lucide-react (иконки)
+* **Фронт**: React 19 + Vite 7
+* **Дизайн**: Tailwind CSS v4 + DaisyUI
+* **Стейт**: TanStack Query (React Query)
+* **Роутинг**: React Router 7
+* **Интерактивы**: Recharts (графики), Lucide-react (иконки)
 
 ### Mobile App
-*   **Платформа**: React Native + Expo (SDK 54)
-*   **Навигация**: Expo Router
-*   **Стили**: NativeWind (Tailwind для мобилки)
-*   **Анимации**: Reanimated
-*   **Чекаут**: Stripe SDK
-*   **Валидация**: React Hook Form
+* **Платформа**: React Native + Expo (SDK 54)
+* **Навигация**: Expo Router
+* **Стили**: NativeWind (Tailwind для мобилки)
+* **Анимации**: Reanimated
+* **Чекаут**: Stripe SDK
+* **Валидация**: React Hook Form
 
 ---
 
@@ -53,18 +53,9 @@
 
 ---
 
-## 📂 Структура папок
+## ⚙️ Установка и запуск
 
-```text
-aromagia-mobile/
-├── admin/            # Веб-интерфейс администратора
-├── backend/          # Серверная часть/API
-└── mobile/           # Мобильное приложение
-```
-
----
-
-## ⚙️ Как запустить (Development)
+### 🛠 Development (Разработка)
 
 1. **Бэкенд**:
    ```bash
@@ -81,34 +72,24 @@ aromagia-mobile/
    cd mobile && npm install && npx expo start
    ```
 
----
-
-## 📦 Сборка и Build (Mobile)
-
-Для сборки приложения на устройства используются следующие команды:
+### 📦 Сборка и Build (Mobile)
 
 **1. Сборка через Expo CLI:**
 ```bash
-# Для Android
-npx expo build:android
-
-# Для iOS
-npx expo build:ios
+cd mobile
+npx expo build:android # или ios
 ```
 
 **2. Локальный запуск (Development Build):**
-Если нужно запустить на симуляторе или подключенном устройстве локально:
+Если нужно запустить на симуляторе или подключенном устройстве:
 ```bash
 cd mobile && npm run android # или ios
 ```
 
-### Сборка через EAS (Production / Preview)
-Для компиляции в облаке или для публикации в сторы:
-1. Установите EAS CLI: `npm install -g eas-cli`
-2. Соберите билд:
-```bash
-eas build --platform android # или ios
-```
+**3. Сборка через EAS (Production):**
+Для компиляции в облаке или публикации:
+1. `npm install -g eas-cli`
+2. `eas build --platform android # или ios`
 
 ---
 
@@ -122,5 +103,3 @@ eas build --platform android # или ios
 
 ### Mobile
 - `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
-
----
