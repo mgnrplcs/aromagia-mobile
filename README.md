@@ -1,40 +1,38 @@
-# Aromagia - Fullstack экосистема для продажи парфюмерии
+# Aromagia
 
 Готовое решение для парфюмерного магазина: мобильное приложение для клиентов, админ-панель для управления бизнесом и масштабируемый бэкенд.
 
 ## 🚀 Из чего состоит проект
 
-* **Мобилка (Customer App)**: Приложение на React Native. Здесь клиенты выбирают товары, оформляют заказы и следят за историей покупок.
-* **Админка (Admin Dashboard)**: Веб-интерфейс на React для менеджеров. Позволяет рулить товарами, смотреть аналитику продаж и обрабатывать возвраты.
-* **Бэкенд (Core API)**: Сервер на Express.js. Отвечает за логику, API для фронтов, платежи и интеграцию с внешними сервисами.
+* **Мобилка**: Приложение на React Native. Здесь клиенты выбирают товары, оформляют заказы и следят за историей покупок.
+* **Админка**: Веб-интерфейс на React для менеджеров. Позволяет рулить товарами, смотреть аналитику продаж и обрабатывать возвраты.
+* **Бэкенд**: Сервер на Express.js. Отвечает за логику, API для фронтов, платежи и интеграцию с внешними сервисами.
 
 ---
 
 ## 🛠 Стек технологий
 
 ### Backend
-* **Среда**: Node.js, Express.js (v5)
-* **БД**: MongoDB + Mongoose
-* **Авторизация**: Clerk (управление пользователями)
-* **Деньги**: Stripe (прием платежей)
-* **Картинки**: Cloudinary
-* **Задачи в фоне**: Inngest
-* **События**: Svix (webhook management)
+* **Ядро**: Node.js, Express.js (v5)
+* **База данных**: MongoDB
+* **Аутентификация**: Clerk
+* **Обработка платежей**: Stripe
+* **Хранение медиа**: Cloudinary
+* **Фоновые задачи**: Inngest
 
 ### Admin Panel
-* **Фронт**: React 19 + Vite 7
-* **Дизайн**: Tailwind CSS v4 + DaisyUI
-* **Стейт**: TanStack Query (React Query)
-* **Роутинг**: React Router 7
-* **Интерактивы**: Recharts (графики), Lucide-react (иконки)
+* **Фреймворк**: React 19 + Vite 7
+* **Стилизация**: Tailwind CSS v4 + DaisyUI
+* **Управление состоянием**: TanStack Query (React Query)
+* **Визуализация данных**: Recharts
 
 ### Mobile App
 * **Платформа**: React Native + Expo (SDK 54)
 * **Навигация**: Expo Router
-* **Стили**: NativeWind (Tailwind для мобилки)
+* **Стилизация**: NativeWind
 * **Анимации**: Reanimated
-* **Чекаут**: Stripe SDK
-* **Валидация**: React Hook Form
+* **Обработка платежей**: Stripe SDK
+* **Управление формами**: React Hook Form
 
 ---
 
@@ -92,13 +90,6 @@ cd mobile && npm run android # или ios
 2. `eas build --platform android # или ios`
 
 ---
-
-## 🔑 Конфигурация (.env)
-
-### Backend
-- `MONGO_URI`, `CLERK_SECRET_KEY`, `STRIPE_SECRET_KEY`, `CLOUDINARY_API_KEY` и др.
-
-### Admin
 - `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_API_URL`.
 
 ### Mobile
