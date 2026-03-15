@@ -88,9 +88,3 @@ cd mobile && npm run android # или ios
 Для компиляции в облаке или публикации:
 1. `npm install -g eas-cli`
 2. `eas build --platform android # или ios`
-
----
-- `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_API_URL`.
-
-### Mobile
-- `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
